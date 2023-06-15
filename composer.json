@@ -1,0 +1,33 @@
+{
+    "name": "toflar/state-set-index",
+    "description": "Implementation of the State Set Index Algorithm",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Toflar\\StateSetIndex\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Toflar\\StateSetIndex\\Test\\": "tests/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Yanick Witschi",
+            "email": "yanick.witschi@terminal42.ch"
+        }
+    ],
+    "require": {
+        "php": "^8.1",
+        "ext-mbstring": "*"
+    },
+    "require-dev": {
+        "symplify/easy-coding-standard": "^11.3",
+        "phpunit/phpunit": "^10.2"
+    },
+    "scripts": {
+        "cs-fix": "@php vendor/bin/ecs --fix"
+    }
+}
