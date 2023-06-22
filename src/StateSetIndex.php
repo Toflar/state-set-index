@@ -15,6 +15,21 @@ class StateSetIndex
     ) {
     }
 
+    public function getConfig(): Config
+    {
+        return $this->config;
+    }
+
+    public function getAlphabet(): AlphabetInterface
+    {
+        return $this->alphabet;
+    }
+
+    public function getStateSet(): StateSetInterface
+    {
+        return $this->stateSet;
+    }
+
     /**
      * Indexes an array of strings and returns an array where all strings have their state assigned.
      *
