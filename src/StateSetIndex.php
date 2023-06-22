@@ -15,8 +15,15 @@ class StateSetIndex
     ) {
     }
 
-    public function index(array $strings): self
+    /**
+     * Indexes an array of strings and returns an array where all strings have their state assigned.
+     *
+     * @return array<string, int>
+     */
+    public function index(array $strings): array
     {
+        $assigned = [];
+
         foreach ($strings as $string) {
             $state = 0;
             $this->loopOverEveryCharacter($string, function (int $mappedChar) use (&$state) {
@@ -26,10 +33,11 @@ class StateSetIndex
                 $state = $newState;
             });
 
+            $assigned[$string] = $state;
             $this->stateSet->acceptString($state, $string);
         }
 
-        return $this;
+        return $assigned;
     }
 
     /**
