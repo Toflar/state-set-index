@@ -4,16 +4,9 @@ namespace Toflar\StateSetIndex\StateSet;
 
 interface StateSetInterface
 {
-    public function add(int $newState, int $parentState, int $mappedChar): self;
+    public function add(int $state, int $parentState, int $mappedChar): self;
 
     public function getChildrenOfState(int $state): array;
-
-    /**
-     * Returns all the children of a given start state that are smaller or equal to $editDistance.
-     * The $startState has to be included in the resulting CostAnnotatedStateSet if the edit distance is fulfilled as
-     * well (a state is always able to reach itself).
-     */
-    public function getReachableStates(int $startState, int $editDistance, int $currentDistance = 0): CostAnnotatedStateSet;
 
     public function getCharForState(int $state): int;
 

@@ -25,15 +25,15 @@ class InMemoryStateSet implements StateSetInterface
      */
     private array $acceptedStrings = [];
 
-    public function add(int $newState, int $parentState, int $mappedChar): self
+    public function add(int $state, int $parentState, int $mappedChar): self
     {
-        $this->mappedChars[$newState] = $mappedChar;
+        $this->mappedChars[$state] = $mappedChar;
 
         if (! isset($this->states[$parentState])) {
             $this->states[$parentState] = [];
         }
 
-        $this->states[$parentState][] = $newState;
+        $this->states[$parentState][] = $state;
 
         return $this;
     }
@@ -41,24 +41,6 @@ class InMemoryStateSet implements StateSetInterface
     public function getChildrenOfState(int $state): array
     {
         return $this->states[$state] ?? [];
-    }
-
-    public function getReachableStates(int $startState, int $editDistance, int $currentDistance = 0): CostAnnotatedStateSet
-    {
-        $reachable = new CostAnnotatedStateSet();
-
-        if ($currentDistance > $editDistance) {
-            return $reachable;
-        }
-
-        // A state is always able to reach itself
-        $reachable->add($startState, $currentDistance);
-
-        foreach ($this->getChildrenOfState($startState) as $child) {
-            $reachable = $reachable->mergeWith($this->getReachableStates($child, $editDistance, $currentDistance + 1));
-        }
-
-        return $reachable;
     }
 
     public function getCharForState(int $state): int

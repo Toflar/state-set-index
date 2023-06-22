@@ -97,7 +97,7 @@ class StateSetIndex
      */
     public function findMatchingStates(string $string, int $editDistance)
     {
-        $states = $this->stateSet->getReachableStates(0, $editDistance);
+        $states = $this->getReachableStates(0, $editDistance);
 
         $this->loopOverEveryCharacter($string, function (int $mappedChar) use (&$states, $editDistance) {
             $nextStates = new CostAnnotatedStateSet();
@@ -123,7 +123,7 @@ class StateSetIndex
 
                 // Insertion
                 foreach ($newStates->all() as $newState => $newCost) {
-                    $nextStates = $nextStates->mergeWith($this->stateSet->getReachableStates(
+                    $nextStates = $nextStates->mergeWith($this->getReachableStates(
                         $newState,
                         $editDistance,
                         $newCost
@@ -149,5 +149,23 @@ class StateSetIndex
             $mappedChar = $this->alphabet->map($char, $this->config->getAlphabetSize());
             $closure($mappedChar);
         }
+    }
+
+    private function getReachableStates(int $startState, int $editDistance, int $currentDistance = 0): CostAnnotatedStateSet
+    {
+        $reachable = new CostAnnotatedStateSet();
+
+        if ($currentDistance > $editDistance) {
+            return $reachable;
+        }
+
+        // A state is always able to reach itself
+        $reachable->add($startState, $currentDistance);
+
+        foreach ($this->stateSet->getChildrenOfState($startState) as $child) {
+            $reachable = $reachable->mergeWith($this->getReachableStates($child, $editDistance, $currentDistance + 1));
+        }
+
+        return $reachable;
     }
 }
