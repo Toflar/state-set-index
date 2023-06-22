@@ -14,6 +14,11 @@ class InMemoryAlphabet implements AlphabetInterface
     ) {
     }
 
+    public function all(): array
+    {
+        return $this->alphabet;
+    }
+
     public function has(string $char): bool
     {
         return isset($this->alphabet[$char]);
