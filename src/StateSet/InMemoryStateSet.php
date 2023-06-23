@@ -6,10 +6,16 @@ class InMemoryStateSet implements StateSetInterface
 {
     /**
      * Key: State
-     * Value: Children
-     * @var array<int, array>
+     * Value: array<parent,mappedChar>
+     *
+     * @var array<int, array<int,int>>
      */
     private array $states = [];
+
+    /**
+     * @var array<int, array<int>>
+     */
+    private array $children = [];
 
     /**
      * Key: State
@@ -27,20 +33,25 @@ class InMemoryStateSet implements StateSetInterface
 
     public function add(int $state, int $parentState, int $mappedChar): self
     {
+        $this->states[$state] = [$parentState, $mappedChar];
         $this->mappedChars[$state] = $mappedChar;
-
-        if (! isset($this->states[$parentState])) {
-            $this->states[$parentState] = [];
-        }
-
-        $this->states[$parentState][] = $state;
+        $this->children[$parentState][$state] = true;
 
         return $this;
     }
 
+    public function all(): array
+    {
+        return $this->states;
+    }
+
     public function getChildrenOfState(int $state): array
     {
-        return $this->states[$state] ?? [];
+        if (!isset($this->children[$state])) {
+            return [];
+        }
+
+        return array_keys($this->children[$state]);
     }
 
     public function getCharForState(int $state): int
