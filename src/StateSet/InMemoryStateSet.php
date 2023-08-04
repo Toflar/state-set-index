@@ -47,7 +47,7 @@ class InMemoryStateSet implements StateSetInterface
 
     public function getChildrenOfState(int $state): array
     {
-        if (!isset($this->children[$state])) {
+        if (! isset($this->children[$state])) {
             return [];
         }
 
