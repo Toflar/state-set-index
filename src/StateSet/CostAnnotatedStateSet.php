@@ -45,15 +45,12 @@ class CostAnnotatedStateSet
 
     public function mergeWith(CostAnnotatedStateSet $stateSet): self
     {
-        $newSet = new CostAnnotatedStateSet();
-        foreach ($this->set as $state => $cost) {
-            $newSet->add($state, $cost);
-        }
+        $clone = clone $this;
 
         foreach ($stateSet->all() as $state => $cost) {
-            $newSet->add($state, $cost);
+            $clone->add($state, $cost);
         }
 
-        return $newSet;
+        return $clone;
     }
 }
