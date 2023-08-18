@@ -8,6 +8,11 @@ use Toflar\StateSetIndex\StateSet\StateSetInterface;
 
 class StateSetIndex
 {
+    /**
+     * @var array<string, int>
+     */
+    private array $indexCache = [];
+
     public function __construct(
         private Config $config,
         private AlphabetInterface $alphabet,
@@ -40,6 +45,11 @@ class StateSetIndex
         $assigned = [];
 
         foreach ($strings as $string) {
+            if (isset($this->indexCache[$string])) {
+                $assigned[$string] = $this->indexCache[$string];
+                continue;
+            }
+
             $state = 0;
             $this->loopOverEveryCharacter($string, function (int $mappedChar) use (&$state) {
                 $newState = (int) ($state * $this->config->getAlphabetSize() + $mappedChar);
@@ -48,7 +58,7 @@ class StateSetIndex
                 $state = $newState;
             });
 
-            $assigned[$string] = $state;
+            $assigned[$string] = $this->indexCache[$string] = $state;
             $this->stateSet->acceptString($state, $string);
         }
 
