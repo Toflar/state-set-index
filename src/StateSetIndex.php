@@ -3,6 +3,7 @@
 namespace Toflar\StateSetIndex;
 
 use Toflar\StateSetIndex\Alphabet\AlphabetInterface;
+use Toflar\StateSetIndex\DataStore\DataStoreInterface;
 use Toflar\StateSetIndex\StateSet\CostAnnotatedStateSet;
 use Toflar\StateSetIndex\StateSet\StateSetInterface;
 
@@ -13,10 +14,16 @@ class StateSetIndex
      */
     private array $indexCache = [];
 
+    /**
+     * @var array<string, array<int, array<int>>>
+     */
+    private array $matchingStatesCache = [];
+
     public function __construct(
         private Config $config,
         private AlphabetInterface $alphabet,
-        private StateSetInterface $stateSet
+        public StateSetInterface $stateSet,
+        private DataStoreInterface $dataStore,
     ) {
     }
 
@@ -45,6 +52,7 @@ class StateSetIndex
         $assigned = [];
 
         foreach ($strings as $string) {
+            // Seen this already, skip
             if (isset($this->indexCache[$string])) {
                 $assigned[$string] = $this->indexCache[$string];
                 continue;
@@ -54,12 +62,12 @@ class StateSetIndex
             $this->loopOverEveryCharacter($string, function (int $mappedChar) use (&$state) {
                 $newState = (int) ($state * $this->config->getAlphabetSize() + $mappedChar);
 
-                $this->stateSet->add($newState, $state, $mappedChar);
+                $this->stateSet->add($newState);
                 $state = $newState;
             });
 
             $assigned[$string] = $this->indexCache[$string] = $state;
-            $this->stateSet->acceptString($state, $string);
+            $this->dataStore->add($state, $string);
         }
 
         return $assigned;
@@ -95,9 +103,7 @@ class StateSetIndex
      */
     public function findAcceptedStrings(string $string, int $editDistance): array
     {
-        $states = $this->findMatchingStates($string, $editDistance);
-
-        return $this->stateSet->getAcceptedStrings($states);
+        return $this->dataStore->getForStates($this->findMatchingStates($string, $editDistance));
     }
 
     /**
@@ -105,11 +111,17 @@ class StateSetIndex
      *
      * @return array<int>
      */
-    public function findMatchingStates(string $string, int $editDistance)
+    public function findMatchingStates(string $string, int $editDistance): array
     {
+        // Seen this already, skip
+        if (isset($this->matchingStatesCache[$string][$editDistance])) {
+            return $this->matchingStatesCache[$string][$editDistance];
+        }
+
+        // Initial states
         $states = $this->getReachableStates(0, $editDistance);
 
-        $this->loopOverEveryCharacter($string, function (int $mappedChar) use (&$states, $editDistance) {
+        $this->loopOverEveryCharacter($string, function (int $mappedChar, $char) use (&$states, $editDistance) {
             $nextStates = new CostAnnotatedStateSet();
 
             foreach ($states->all() as $state => $cost) {
@@ -120,14 +132,18 @@ class StateSetIndex
                     $newStates->add($state, $cost + 1);
                 }
 
-                foreach ($this->stateSet->getChildrenOfState($state) as $childState) {
-                    $childChar = $this->stateSet->getCharForState($childState);
-                    if ($childChar === $mappedChar) {
-                        // Match
-                        $newStates->add($childState, $cost);
-                    } elseif ($cost + 1 <= $editDistance) {
-                        // Substitution
-                        $newStates->add($childState, $cost + 1);
+                // Match & Substitution
+                for ($i = 1; $i <= $this->config->getAlphabetSize(); $i++) {
+                    $newState = (int) ($state * $this->config->getAlphabetSize() + $i);
+
+                    if ($this->stateSet->has($newState)) {
+                        if ($i === $this->getAlphabet()->map($char, $this->config->getAlphabetSize())) {
+                            // Match
+                            $newStates->add($newState, $cost);
+                        } elseif ($cost + 1 <= $editDistance) {
+                            // Substitution
+                            $newStates->add($newState, $cost + 1);
+                        }
                     }
                 }
 
@@ -144,7 +160,7 @@ class StateSetIndex
             $states = $nextStates;
         });
 
-        return $states->states();
+        return $this->matchingStatesCache[$string][$editDistance] = $states->states();
     }
 
     /**
@@ -157,7 +173,7 @@ class StateSetIndex
 
         foreach (mb_str_split($indexedSubstring) as $char) {
             $mappedChar = $this->alphabet->map($char, $this->config->getAlphabetSize());
-            $closure($mappedChar);
+            $closure($mappedChar, $char);
         }
     }
 
@@ -172,8 +188,13 @@ class StateSetIndex
         // A state is always able to reach itself
         $reachable->add($startState, $currentDistance);
 
-        foreach ($this->stateSet->getChildrenOfState($startState) as $child) {
-            $reachable = $reachable->mergeWith($this->getReachableStates($child, $editDistance, $currentDistance + 1));
+        for ($i = 0; $i <= $editDistance; $i++) {
+            for ($c = 0; $c < $this->config->getAlphabetSize(); $c++) {
+                $state = $startState + $c * $i;
+                if ($this->stateSet->has($state)) {
+                    $reachable = $reachable->mergeWith($this->getReachableStates($state, $editDistance, $currentDistance + 1));
+                }
+            }
         }
 
         return $reachable;

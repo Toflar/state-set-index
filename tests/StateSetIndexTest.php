@@ -5,6 +5,7 @@ namespace Toflar\StateSetIndex\Test;
 use PHPUnit\Framework\TestCase;
 use Toflar\StateSetIndex\Alphabet\InMemoryAlphabet;
 use Toflar\StateSetIndex\Config;
+use Toflar\StateSetIndex\DataStore\InMemoryDataStore;
 use Toflar\StateSetIndex\StateSet\InMemoryStateSet;
 use Toflar\StateSetIndex\StateSetIndex;
 
@@ -12,6 +13,8 @@ class StateSetIndexTest extends TestCase
 {
     public function testResultsMatchResearchPaper(): void
     {
+        $stateSet = new InMemoryStateSet();
+        $dataStore = new InMemoryDataStore();
         $stringSet = ['Mueller', 'Müller', 'Muentner', 'Muster', 'Mustermann'];
 
         $stateSetIndex = new StateSetIndex(
@@ -29,12 +32,13 @@ class StateSetIndexTest extends TestCase
                 'm' => 2,
                 'a' => 3,
             ]),
-            new InMemoryStateSet()
+            $stateSet,
+            $dataStore
         );
 
         $stateSetIndex->index($stringSet);
 
-        $this->assertSame([467, 104, 419, 1677, 1811], $stateSetIndex->findMatchingStates('Mustre', 2));
+        $this->assertSame([104, 419, 467, 1677, 1811], $stateSetIndex->findMatchingStates('Mustre', 2));
         $this->assertSame([1811 => ['Mueller'], 1677 => ['Muster', 'Mustermann']], $stateSetIndex->findAcceptedStrings('Mustre', 2));
         $this->assertSame(['Muster'], $stateSetIndex->find('Mustre', 2));
     }

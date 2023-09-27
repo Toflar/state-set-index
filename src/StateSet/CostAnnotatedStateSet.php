@@ -23,7 +23,9 @@ class CostAnnotatedStateSet
 
     public function states(): array
     {
-        return array_values(array_keys($this->set));
+        $states = array_values(array_keys($this->set));
+        sort($states);
+        return $states;
     }
 
     /**
