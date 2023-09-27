@@ -49,7 +49,8 @@ persistent. Hence, there are two interfaces that allow you to implement your own
 
 * The `AlphabetInterface` is very straight-forward. It only consists of a `map(string $char, int $alphabetSize)` method 
   which the library needs to map characters to an internal label. Whether you load/store the alphabet in some 
-  database is up to you. The library ships with an `InMemoryAlphabet` for reference and simple use cases.
+  database is up to you. The library ships with an `InMemoryAlphabet` for reference and simple use cases. You don't 
+  even need to store the alphabet as we already have one with the UTF-8 codepoints, that's what `Utf8Alphabet` is for.
 * The `StateSetInterface` is more complex but is essentially responsible to load and store information about the 
   state set of your index. Again, whether you load/store the state set in some
   database is up to you. The library ships with an `InMemoryStateSet` for reference and simple use cases.
