@@ -10,13 +10,13 @@ class Config
     ) {
     }
 
-    public function getIndexLength(): int
-    {
-        return $this->indexLength;
-    }
-
     public function getAlphabetSize(): int
     {
         return $this->alphabetSize;
+    }
+
+    public function getIndexLength(): int
+    {
+        return $this->indexLength;
     }
 }

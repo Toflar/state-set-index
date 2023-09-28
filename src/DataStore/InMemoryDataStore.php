@@ -9,14 +9,14 @@ class InMemoryDataStore implements DataStoreInterface
      */
     private array $data = [];
 
-    public function all(): array
-    {
-        return $this->data;
-    }
-
     public function add(int $state, string $string): void
     {
         $this->data[$state][] = $string;
+    }
+
+    public function all(): array
+    {
+        return $this->data;
     }
 
     public function getForStates(array $states = []): array

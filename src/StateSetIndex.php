@@ -27,52 +27,6 @@ class StateSetIndex
     ) {
     }
 
-    public function getConfig(): Config
-    {
-        return $this->config;
-    }
-
-    public function getAlphabet(): AlphabetInterface
-    {
-        return $this->alphabet;
-    }
-
-    public function getStateSet(): StateSetInterface
-    {
-        return $this->stateSet;
-    }
-
-    /**
-     * Indexes an array of strings and returns an array where all strings have their state assigned.
-     *
-     * @return array<string, int>
-     */
-    public function index(array $strings): array
-    {
-        $assigned = [];
-
-        foreach ($strings as $string) {
-            // Seen this already, skip
-            if (isset($this->indexCache[$string])) {
-                $assigned[$string] = $this->indexCache[$string];
-                continue;
-            }
-
-            $state = 0;
-            $this->loopOverEveryCharacter($string, function (int $mappedChar) use (&$state) {
-                $newState = (int) ($state * $this->config->getAlphabetSize() + $mappedChar);
-
-                $this->stateSet->add($newState);
-                $state = $newState;
-            });
-
-            $assigned[$string] = $this->indexCache[$string] = $state;
-            $this->dataStore->add($state, $string);
-        }
-
-        return $assigned;
-    }
-
     /**
      * Returns the matching strings.
      *
@@ -170,18 +124,50 @@ class StateSetIndex
         return $this->matchingStatesCache[$cacheKey] = $states->states();
     }
 
-    /**
-     * @param \Closure(int) $closure
-     */
-    private function loopOverEveryCharacter(string $string, \Closure $closure): void
+    public function getAlphabet(): AlphabetInterface
     {
-        $indexedSubstringLength = min($this->config->getIndexLength(), mb_strlen($string));
-        $indexedSubstring = mb_substr($string, 0, $indexedSubstringLength);
+        return $this->alphabet;
+    }
 
-        foreach (mb_str_split($indexedSubstring) as $char) {
-            $mappedChar = $this->alphabet->map($char, $this->config->getAlphabetSize());
-            $closure($mappedChar, $char);
+    public function getConfig(): Config
+    {
+        return $this->config;
+    }
+
+    public function getStateSet(): StateSetInterface
+    {
+        return $this->stateSet;
+    }
+
+    /**
+     * Indexes an array of strings and returns an array where all strings have their state assigned.
+     *
+     * @return array<string, int>
+     */
+    public function index(array $strings): array
+    {
+        $assigned = [];
+
+        foreach ($strings as $string) {
+            // Seen this already, skip
+            if (isset($this->indexCache[$string])) {
+                $assigned[$string] = $this->indexCache[$string];
+                continue;
+            }
+
+            $state = 0;
+            $this->loopOverEveryCharacter($string, function (int $mappedChar) use (&$state) {
+                $newState = (int) ($state * $this->config->getAlphabetSize() + $mappedChar);
+
+                $this->stateSet->add($newState);
+                $state = $newState;
+            });
+
+            $assigned[$string] = $this->indexCache[$string] = $state;
+            $this->dataStore->add($state, $string);
         }
+
+        return $assigned;
     }
 
     private function getReachableStates(int $startState, int $editDistance, int $currentDistance = 0): CostAnnotatedStateSet
@@ -205,5 +191,19 @@ class StateSetIndex
         }
 
         return $reachable;
+    }
+
+    /**
+     * @param \Closure(int) $closure
+     */
+    private function loopOverEveryCharacter(string $string, \Closure $closure): void
+    {
+        $indexedSubstringLength = min($this->config->getIndexLength(), mb_strlen($string));
+        $indexedSubstring = mb_substr($string, 0, $indexedSubstringLength);
+
+        foreach (mb_str_split($indexedSubstring) as $char) {
+            $mappedChar = $this->alphabet->map($char, $this->config->getAlphabetSize());
+            $closure($mappedChar, $char);
+        }
     }
 }
