@@ -11,10 +11,11 @@ class Utf8Alphabet implements AlphabetInterface
 
     public function map(string $char, int $alphabetSize): int
     {
-        if (isset($this->cache[$alphabetSize][$char])) {
-            return $this->cache[$alphabetSize][$char];
+        if (!isset($this->cache[$alphabetSize][$char])) {
+            // +1 in order to never assign 0
+            $this->cache[$alphabetSize][$char] = (mb_ord($char, 'UTF-8') % $alphabetSize) + 1;
         }
 
-        return $this->cache[$alphabetSize][$char] = mb_ord($char, 'UTF-8') % $alphabetSize;
+        return $this->cache[$alphabetSize][$char];
     }
 }
