@@ -7,7 +7,6 @@ use Toflar\StateSetIndex\Alphabet\InMemoryAlphabet;
 use Toflar\StateSetIndex\Alphabet\Utf8Alphabet;
 use Toflar\StateSetIndex\Config;
 use Toflar\StateSetIndex\DataStore\InMemoryDataStore;
-use Toflar\StateSetIndex\DataStore\NullDataStore;
 use Toflar\StateSetIndex\StateSet\InMemoryStateSet;
 use Toflar\StateSetIndex\StateSetIndex;
 

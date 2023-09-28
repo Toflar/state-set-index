@@ -43,14 +43,6 @@ You can configure the maximum index length and maximum alphabet size with the `C
 paper for details on what they do. There's no such thing as a recommended size as it very much depends on what
 you want to index and or search.
 
-This library deviates from the research paper in one aspect: it not only supports regular Levenshtein but also 
-Damerau-Levenshtein which allows transpositions. So whereas the Levenshtein algorithm would calculate a distance of 
-`2` between `Muster` and `Mustre`, Damerau-Levenshtein only calculates `1` as `er` and `re` are swapped/transposed.
-You can enable the usage of Damerau-Levenshtein using the third constructor argument of `Config`: `new Config(6, 4, 
-true)`.
-
-Note: TODO.
-
 ## Customization
 
 This library ships with the algorithm readily prepared for you to use. The main customization areas will be
@@ -77,5 +69,14 @@ results which you can use to e.g. search your own database for states etc.:
 * `$stateSetIndex->findAcceptedStrings('Mustre', 2)` returns the matching states and the respective accepted strings 
   (unfiltered for false-positives!).
 * `$stateSetIndex->find('Mustre', 2)` returns the real matches, filtered for false-positives.
+
+
+TODO: This library deviates from the research paper in one aspect: it not only supports regular Levenshtein but also
+  Damerau-Levenshtein which allows transpositions. So whereas the Levenshtein algorithm would calculate a distance of
+  `2` between `Muster` and `Mustre`, Damerau-Levenshtein only calculates `1` as `er` and `re` are swapped/transposed.
+  You can enable the usage of Damerau-Levenshtein using the third constructor argument of `Config`: `new Config(6, 4,
+  true)`.
+
+
 
 [Paper]: https://hpi.de/fileadmin/user_upload/fachgebiete/naumann/publications/PDFs/2012_fenz_efficient.pdf

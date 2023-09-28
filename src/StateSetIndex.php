@@ -210,7 +210,7 @@ class StateSetIndex
             for ($c = 0; $c < $this->config->getAlphabetSize(); $c++) {
                 $state = $startState + $c * $i;
                 if ($this->stateSet->has($state)) {
-                    $reachable = $reachable->mergeWith($this->getReachableStates($state, $editDistance, $currentDistance + 1));
+                    $reachable->add($startState, $currentDistance);
                 }
             }
         }
