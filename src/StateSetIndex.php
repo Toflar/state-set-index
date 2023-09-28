@@ -78,9 +78,9 @@ class StateSetIndex
      *
      * @return array<string>
      */
-    public function find(string $string, int $editDistance, bool $useDamerauLevenshtein = false): array
+    public function find(string $string, int $editDistance): array
     {
-        $acceptedStringsPerState = $this->findAcceptedStrings($string, $editDistance, $useDamerauLevenshtein);
+        $acceptedStringsPerState = $this->findAcceptedStrings($string, $editDistance);
         $stringLength = mb_strlen($string);
         $filtered = [];
 
@@ -91,11 +91,7 @@ class StateSetIndex
                     continue;
                 }
 
-                $distance = $useDamerauLevenshtein ?
-                    Levenshtein::distanceDamerau($string, $acceptedString) :
-                    Levenshtein::distance($string, $acceptedString);
-
-                if ($distance <= $editDistance) {
+                if (Levenshtein::distance($string, $acceptedString) <= $editDistance) {
                     $filtered[] = $acceptedString;
                 }
             }
@@ -110,9 +106,9 @@ class StateSetIndex
      *
      * @return array<int,array<string>>
      */
-    public function findAcceptedStrings(string $string, int $editDistance, bool $useDamerauLevenshtein = false): array
+    public function findAcceptedStrings(string $string, int $editDistance): array
     {
-        return $this->dataStore->getForStates($this->findMatchingStates($string, $editDistance, $useDamerauLevenshtein));
+        return $this->dataStore->getForStates($this->findMatchingStates($string, $editDistance));
     }
 
     /**
@@ -120,9 +116,9 @@ class StateSetIndex
      *
      * @return array<int>
      */
-    public function findMatchingStates(string $string, int $editDistance, bool $useDamerauLevenshtein = false): array
+    public function findMatchingStates(string $string, int $editDistance): array
     {
-        $cacheKey = $string . ';' . $editDistance . ';' . $useDamerauLevenshtein;
+        $cacheKey = $string . ';' . $editDistance;
 
         // Seen this already, skip
         if (isset($this->matchingStatesCache[$cacheKey])) {
@@ -132,9 +128,7 @@ class StateSetIndex
         // Initial states
         $states = $this->getReachableStates(0, $editDistance);
 
-        $prevChar = null;
-
-        $this->loopOverEveryCharacter($string, function (int $mappedChar, $char) use (&$states, &$prevChar, $editDistance, $useDamerauLevenshtein) {
+        $this->loopOverEveryCharacter($string, function (int $mappedChar, $char) use (&$states, $editDistance) {
             $nextStates = new CostAnnotatedStateSet();
 
             foreach ($states->all() as $state => $cost) {
@@ -153,10 +147,6 @@ class StateSetIndex
                         if ($i === $this->getAlphabet()->map($char, $this->config->getAlphabetSize())) {
                             // Match
                             $newStates->add($newState, $cost);
-                        } elseif (null !== $prevChar && $i === $this->getAlphabet()->map($prevChar, $this->config->getAlphabetSize())) {
-                            // Transposition according to Damerau-Levenshtein (this is not part of the research paper and
-                            // the only deviation from it)
-                            $newStates->add($newState, $cost);
                         } elseif ($cost + 1 <= $editDistance) {
                             // Substitution
                             $newStates->add($newState, $cost + 1);
@@ -174,7 +164,6 @@ class StateSetIndex
                 }
             }
 
-            $prevChar = $useDamerauLevenshtein ? $char : null;
             $states = $nextStates;
         });
 

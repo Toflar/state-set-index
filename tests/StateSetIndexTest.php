@@ -55,15 +55,4 @@ class StateSetIndexTest extends TestCase
         $this->assertSame([2710 => ['Mueller'], 2843 => ['Muster', 'Mustermann']], $stateSetIndex->findAcceptedStrings('Mustre', 2));
         $this->assertSame(['Muster'], $stateSetIndex->find('Mustre', 2));
     }
-
-    public function testDamerauLevenshtein(): void
-    {
-        $stateSetIndex = new StateSetIndex(new Config(6, 4), new Utf8Alphabet(), new InMemoryStateSet(), new InMemoryDataStore());
-        $stateSetIndex->index(['Mueller', 'Müller', 'Muentner', 'Muster', 'Mustermann']);
-
-        // Should consider transposition (Damerau-Levenshtein) as distance of 1
-        $this->assertSame([677, 710, 2710, 2743, 2843], $stateSetIndex->findMatchingStates('Mustremann', 1, true));
-        $this->assertSame([2710 => ['Mueller'], 2743 => ['Muentner'], 2843 => ['Muster', 'Mustermann']], $stateSetIndex->findAcceptedStrings('Mustremann', 1, true));
-        $this->assertSame(['Mustermann'], $stateSetIndex->find('Mustremann', 1, true));
-    }
 }
