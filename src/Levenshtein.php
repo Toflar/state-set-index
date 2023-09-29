@@ -4,7 +4,7 @@ namespace Toflar\StateSetIndex;
 
 class Levenshtein
 {
-    public static function distance(string $string1, string $string2, int $insertionCost = 1, $replacementCost = 1, $deletionCost = 1)
+    public static function distance(string $string1, string $string2, int $insertionCost = 1, $replacementCost = 1, $deletionCost = 1): int
     {
         $string1 = mb_convert_encoding($string1, 'ASCII', 'utf8');
         $string2 = mb_convert_encoding($string2, 'ASCII', 'utf8');

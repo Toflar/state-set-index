@@ -14,19 +14,21 @@ class InMemoryAlphabet implements AlphabetInterface
     ) {
     }
 
+    public function add(string $char, int $label): self
+    {
+        $this->alphabet[$char] = $label;
+
+        return $this;
+    }
+
     public function all(): array
     {
         return $this->alphabet;
     }
 
-    public function has(string $char): bool
-    {
-        return isset($this->alphabet[$char]);
-    }
-
     public function count(): int
     {
-        return count($this->alphabet);
+        return \count($this->alphabet);
     }
 
     public function get(string $char): ?int
@@ -34,11 +36,9 @@ class InMemoryAlphabet implements AlphabetInterface
         return $this->alphabet[$char] ?? null;
     }
 
-    public function add(string $char, int $label): self
+    public function has(string $char): bool
     {
-        $this->alphabet[$char] = $label;
-
-        return $this;
+        return isset($this->alphabet[$char]);
     }
 
     public function map(string $char, int $alphabetSize): int

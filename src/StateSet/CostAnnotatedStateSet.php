@@ -12,27 +12,12 @@ class CostAnnotatedStateSet
     private array $set = [];
 
     /**
-     * Key: State
-     * Value: Cost
-     * @return array<int, int>
-     */
-    public function all(): array
-    {
-        return $this->set;
-    }
-
-    public function states(): array
-    {
-        return array_values(array_keys($this->set));
-    }
-
-    /**
      * Adds a state with a cost to this set.
      * If this sets already contains the given state with a higher cost, replaces it.
      */
     public function add(int $state, int $cost): void
     {
-        if (! isset($this->set[$state])) {
+        if (!isset($this->set[$state])) {
             $this->set[$state] = $cost;
             return;
         }
@@ -41,6 +26,16 @@ class CostAnnotatedStateSet
         if ($cost < $this->set[$state]) {
             $this->set[$state] = $cost;
         }
+    }
+
+    /**
+     * Key: State
+     * Value: Cost
+     * @return array<int, int>
+     */
+    public function all(): array
+    {
+        return $this->set;
     }
 
     public function mergeWith(CostAnnotatedStateSet $stateSet): self
@@ -52,5 +47,12 @@ class CostAnnotatedStateSet
         }
 
         return $clone;
+    }
+
+    public function states(): array
+    {
+        $states = array_values(array_keys($this->set));
+        sort($states);
+        return $states;
     }
 }
