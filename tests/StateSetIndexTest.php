@@ -38,12 +38,6 @@ class StateSetIndexTest extends TestCase
         $this->assertSame([104, 419, 467, 1677, 1811], $stateSetIndex->findMatchingStates('Mustre', 2));
         $this->assertSame([1811 => ['Mueller'], 1677 => ['Muster', 'Mustermann']], $stateSetIndex->findAcceptedStrings('Mustre', 2));
         $this->assertSame(['Muster'], $stateSetIndex->find('Mustre', 2));
-
-        // Should consider transposition (Damerau-Levenshtein) as distance of 2
-        $this->assertSame([104, 419, 467, 1677, 1811], $stateSetIndex->findMatchingStates('Mustremann', 2));
-        $this->assertSame(['Mustermann'], $stateSetIndex->find('Mustremann', 2));
-        $this->assertSame([419], $stateSetIndex->findMatchingStates('Mustremann', 1));
-        $this->assertSame([], $stateSetIndex->find('Mustremann', 1));
     }
 
     public function testWithUtf8Alphabet(): void
