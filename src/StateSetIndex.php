@@ -82,7 +82,7 @@ class StateSetIndex
         // Initial states
         $states = $this->getReachableStates(0, $editDistance);
 
-        $this->loopOverEveryCharacter($string, function (int $mappedChar, $char) use (&$states, $editDistance) {
+        $this->loopOverEveryCharacter($string, function (int $mappedChar) use (&$states, $editDistance) {
             $statesStar = new CostAnnotatedStateSet(); // This is S∗ in the paper
 
             foreach ($states->all() as $state => $cost) {
@@ -98,7 +98,7 @@ class StateSetIndex
                     $newState = (int) ($state * $this->config->getAlphabetSize() + $i);
 
                     if ($this->stateSet->has($newState)) {
-                        if ($i === $this->getAlphabet()->map($char, $this->config->getAlphabetSize())) {
+                        if ($i === $mappedChar) {
                             // Match
                             $statesStarC->add($newState, $cost);
                         } elseif ($cost + 1 <= $editDistance) {
@@ -203,7 +203,7 @@ class StateSetIndex
 
         foreach (mb_str_split($indexedSubstring) as $char) {
             $mappedChar = $this->alphabet->map($char, $this->config->getAlphabetSize());
-            $closure($mappedChar, $char);
+            $closure($mappedChar);
         }
     }
 }
