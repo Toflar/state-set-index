@@ -19,7 +19,7 @@ class InMemoryStateSet implements StateSetInterface
 
     public function all(): array
     {
-        return $this->states;
+        return array_keys($this->states);
     }
 
     public function has(int $state): bool
