@@ -49,4 +49,13 @@ class StateSetIndexTest extends TestCase
         $this->assertSame([2710 => ['Mueller'], 2843 => ['Muster', 'Mustermann']], $stateSetIndex->findAcceptedStrings('Mustre', 2));
         $this->assertSame(['Muster'], $stateSetIndex->find('Mustre', 2));
     }
+
+    public function testAssassinCanBeFound(): void
+    {
+        $dataStore = new InMemoryDataStore();
+        $stateSetIndex = new StateSetIndex(new Config(14, 4), new Utf8Alphabet(), new InMemoryStateSet(), $dataStore);
+        $stateSetIndex->index(['assassin']);
+
+        $this->assertSame(['assassin'], $stateSetIndex->find('assasin', 2));
+    }
 }
