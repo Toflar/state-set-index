@@ -83,14 +83,14 @@ class StateSetIndex
         $states = $this->getReachableStates(0, $editDistance);
 
         $this->loopOverEveryCharacter($string, function (int $mappedChar, $char) use (&$states, $editDistance) {
-            $nextStates = new CostAnnotatedStateSet();
+            $statesStar = new CostAnnotatedStateSet(); // This is S∗ in the paper
 
             foreach ($states->all() as $state => $cost) {
-                $newStates = new CostAnnotatedStateSet();
+                $statesStarC = new CostAnnotatedStateSet(); // This is S∗c in the paper
 
                 // Deletion
                 if ($cost + 1 <= $editDistance) {
-                    $newStates->add($state, $cost + 1);
+                    $statesStarC->add($state, $cost + 1);
                 }
 
                 // Match & Substitution
@@ -100,17 +100,17 @@ class StateSetIndex
                     if ($this->stateSet->has($newState)) {
                         if ($i === $this->getAlphabet()->map($char, $this->config->getAlphabetSize())) {
                             // Match
-                            $newStates->add($newState, $cost);
+                            $statesStarC->add($newState, $cost);
                         } elseif ($cost + 1 <= $editDistance) {
                             // Substitution
-                            $newStates->add($newState, $cost + 1);
+                            $statesStarC->add($newState, $cost + 1);
                         }
                     }
                 }
 
                 // Insertion
-                foreach ($newStates->all() as $newState => $newCost) {
-                    $nextStates = $nextStates->mergeWith($this->getReachableStates(
+                foreach ($statesStarC->all() as $newState => $newCost) {
+                    $statesStar = $statesStar->mergeWith($this->getReachableStates(
                         $newState,
                         $editDistance,
                         $newCost
@@ -118,7 +118,7 @@ class StateSetIndex
                 }
             }
 
-            $states = $nextStates;
+            $states = $statesStar;
         });
 
         return $this->matchingStatesCache[$cacheKey] = $states->states();
