@@ -4,8 +4,68 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "e34f8a6ddab0cadd8adc17acdc552e3a",
-    "packages": [],
+    "content-hash": "2e55f84e81b4ea996954cae8cb8a6cf4",
+    "packages": [
+        {
+            "name": "oefenweb/damerau-levenshtein",
+            "version": "v3.0.2",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/Oefenweb/damerau-levenshtein.git",
+                "reference": "3f63a83b647fd24c3822b7cff0cde6ae3d25cff9"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/Oefenweb/damerau-levenshtein/zipball/3f63a83b647fd24c3822b7cff0cde6ae3d25cff9",
+                "reference": "3f63a83b647fd24c3822b7cff0cde6ae3d25cff9",
+                "shasum": ""
+            },
+            "require": {
+                "ext-mbstring": "*",
+                "php": ">=7.1.0"
+            },
+            "require-dev": {
+                "oefenweb/cakephp-codesniffer": "^2.0",
+                "phpmd/phpmd": "^2.0",
+                "phpstan/phpstan": "^0.12.66",
+                "phpunit/phpunit": "^7.5",
+                "sebastian/phpcpd": "^4.0"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Oefenweb\\DamerauLevenshtein\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Ph4r05",
+                    "homepage": "http://www.phpclasses.org/package/7021-PHP-Get-text-similarity-level-with-Damerau-Levenshtein.html"
+                },
+                {
+                    "name": "Oefenweb.nl BV team",
+                    "homepage": "https://github.com/Oefenweb/damerau-levenshtein/contributors"
+                }
+            ],
+            "description": "Get text similarity level with Damerau-Levenshtein distance",
+            "homepage": "http://github.com/Oefenweb/damerau-levenshtein",
+            "keywords": [
+                "damerau",
+                "distance",
+                "levenshtein",
+                "similarity"
+            ],
+            "support": {
+                "issues": "https://github.com/Oefenweb/damerau-levenshtein/issues",
+                "source": "https://github.com/Oefenweb/damerau-levenshtein"
+            },
+            "time": "2022-03-23T10:44:48+00:00"
+        }
+    ],
     "packages-dev": [
         {
             "name": "myclabs/deep-copy",

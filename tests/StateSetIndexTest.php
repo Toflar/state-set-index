@@ -35,9 +35,9 @@ class StateSetIndexTest extends TestCase
 
         $stateSetIndex->index(['Mueller', 'Müller', 'Muentner', 'Muster', 'Mustermann']);
 
-        $this->assertSame([104, 419, 467, 1677, 1811], $stateSetIndex->findMatchingStates('Mustre', 2));
-        $this->assertSame([1811 => ['Mueller'], 1677 => ['Muster', 'Mustermann']], $stateSetIndex->findAcceptedStrings('Mustre', 2));
-        $this->assertSame(['Muster'], $stateSetIndex->find('Mustre', 2));
+        $this->assertSame([104, 419, 467, 1677, 1811], $stateSetIndex->findMatchingStates('Mustre', 2, 2));
+        $this->assertSame([1811 => ['Mueller'], 1677 => ['Muster', 'Mustermann']], $stateSetIndex->findAcceptedStrings('Mustre', 2, 2));
+        $this->assertSame(['Muster'], $stateSetIndex->find('Mustre', 2, 2));
     }
 
     public function testWithUtf8Alphabet(): void
@@ -45,8 +45,8 @@ class StateSetIndexTest extends TestCase
         $stateSetIndex = new StateSetIndex(new Config(6, 4), new Utf8Alphabet(), new InMemoryStateSet(), new InMemoryDataStore());
         $stateSetIndex->index(['Mueller', 'Müller', 'Muentner', 'Muster', 'Mustermann']);
 
-        $this->assertSame([177, 710, 2710, 2843], $stateSetIndex->findMatchingStates('Mustre', 2));
-        $this->assertSame([2710 => ['Mueller'], 2843 => ['Muster', 'Mustermann']], $stateSetIndex->findAcceptedStrings('Mustre', 2));
+        $this->assertSame([177, 710, 2710, 2843], $stateSetIndex->findMatchingStates('Mustre', 2, 2));
+        $this->assertSame([2710 => ['Mueller'], 2843 => ['Muster', 'Mustermann']], $stateSetIndex->findAcceptedStrings('Mustre', 2, 2));
         $this->assertSame(['Muster'], $stateSetIndex->find('Mustre', 2));
     }
 
@@ -58,8 +58,25 @@ class StateSetIndexTest extends TestCase
         $stateSetIndex = new StateSetIndex(new Config(14, 4), new Utf8Alphabet(), new InMemoryStateSet(), new InMemoryDataStore());
         $stateSetIndex->index(['assassin']);
 
-        $this->assertSame([844, 3380, 13522, 54091], $stateSetIndex->findMatchingStates('assasin', 2));
-        $this->assertSame([54091 => ['assassin']], $stateSetIndex->findAcceptedStrings('assasin', 2));
-        $this->assertSame(['assassin'], $stateSetIndex->find('assasin', 2));
+        $this->assertSame([844, 3380, 13522, 54091], $stateSetIndex->findMatchingStates('assasin', 2, 2));
+        $this->assertSame([54091 => ['assassin']], $stateSetIndex->findAcceptedStrings('assasin', 2, 2));
+        $this->assertSame(['assassin'], $stateSetIndex->find('assasin', 2, 2));
+    }
+
+    public function testTranspositionsCanBeFound(): void
+    {
+        $dataStore = new InMemoryDataStore();
+        $stateSetIndex = new StateSetIndex(new Config(14, 6), new Utf8Alphabet(), new InMemoryStateSet(), $dataStore);
+        $stateSetIndex->index(['abcdefg']);
+
+        $this->assertSame([123128 => ['abcdefg']], $stateSetIndex->findAcceptedStrings('abdcefg', 1, 1));
+        $this->assertSame([123128 => ['abcdefg']], $stateSetIndex->findAcceptedStrings('bacdegf', 2, 1));
+        $this->assertSame([], $stateSetIndex->findAcceptedStrings('abdcefg', 0, 1));
+        $this->assertSame([], $stateSetIndex->findAcceptedStrings('bacdegf', 1, 1));
+
+        $this->assertSame(['abcdefg'], $stateSetIndex->find('abdcefg', 1));
+        $this->assertSame(['abcdefg'], $stateSetIndex->find('bacdegf', 2));
+        $this->assertSame([], $stateSetIndex->find('abdcefg', 0));
+        $this->assertSame([], $stateSetIndex->find('bacdegf', 1));
     }
 }

@@ -21,7 +21,8 @@
     ],
     "require": {
         "php": "^8.1",
-        "ext-mbstring": "*"
+        "ext-mbstring": "*",
+        "oefenweb/damerau-levenshtein": "^3.0"
     },
     "require-dev": {
         "symplify/easy-coding-standard": "^11.3",
