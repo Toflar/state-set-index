@@ -2,7 +2,6 @@
 
 namespace Toflar\StateSetIndex;
 
-use Oefenweb\DamerauLevenshtein\DamerauLevenshtein;
 use Toflar\StateSetIndex\Alphabet\AlphabetInterface;
 use Toflar\StateSetIndex\DataStore\DataStoreInterface;
 use Toflar\StateSetIndex\StateSet\CostAnnotatedStateSet;
@@ -46,9 +45,7 @@ class StateSetIndex
                     continue;
                 }
 
-                $distance = new DamerauLevenshtein($string, $acceptedString, insCost: 1, delCost: 1, subCost: 1, transCost: $transpositionCost);
-
-                if ($distance->getSimilarity() <= $editDistance) {
+                if (DamerauLevenshtein::distance($string, $acceptedString, $editDistance + 1, 1, 1, 1, $transpositionCost) <= $editDistance) {
                     $filtered[] = $acceptedString;
                 }
             }
