@@ -176,6 +176,16 @@ class StateSetIndex
         return $assigned;
     }
 
+    /**
+     * Resets internal caches, use this in long-running processes in order to not run into a memory leak.
+     */
+    public function reset(): void
+    {
+        $this->indexCache = [];
+        $this->matchingStatesCache = [];
+        $this->trieFilters = [];
+    }
+
     private function getReachableStates(int $startState, int $editDistance, int $currentDistance = 0): CostAnnotatedStateSet
     {
         $reachable = new CostAnnotatedStateSet();
