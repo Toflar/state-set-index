@@ -21,7 +21,7 @@ composer require toflar/state-set-index
 ```php
 namespace App;
 
-use Toflar\StateSetIndex\Alphabet\Utf8Alphabet
+use Toflar\StateSetIndex\Alphabet\Utf8Alphabet;
 use Toflar\StateSetIndex\DataStore\InMemoryDataStore;
 use Toflar\StateSetIndex\StateSet\InMemoryStateSet;
 use Toflar\StateSetIndex\StateSetIndex;
