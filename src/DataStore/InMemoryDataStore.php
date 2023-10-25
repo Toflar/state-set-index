@@ -21,10 +21,6 @@ class InMemoryDataStore implements DataStoreInterface
 
     public function getForStates(array $states = []): array
     {
-        if ([] === $states) {
-            return $this->data;
-        }
-
         return array_intersect_key($this->data, array_flip($states));
     }
 }
