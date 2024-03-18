@@ -24,6 +24,9 @@ class Levenshtein
         // update the encoding map with the characters not already met
         foreach ($matches[0] as $mbc) {
             if (!isset($map[$mbc])) {
+                if (\count($map) >= 128) {
+                    throw new \InvalidArgumentException('Strings with more than 128 individual unicode characters are not supported.');
+                }
                 $map[$mbc] = \chr(128 + \count($map));
             }
         }
