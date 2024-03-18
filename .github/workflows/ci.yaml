@@ -28,7 +28,7 @@ jobs:
               run: composer install --no-interaction --no-suggest
 
             - name: Run the CS fixer
-              run: composer cs
+              run: vendor/bin/ecs
 
     tests:
         name: PHP ${{ matrix.php }}
