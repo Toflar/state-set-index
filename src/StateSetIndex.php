@@ -4,6 +4,8 @@ namespace Toflar\StateSetIndex;
 
 use Toflar\StateSetIndex\Alphabet\AlphabetInterface;
 use Toflar\StateSetIndex\DataStore\DataStoreInterface;
+use Toflar\StateSetIndex\Levenshtein\Automaton;
+use Toflar\StateSetIndex\Levenshtein\TrieFilter;
 use Toflar\StateSetIndex\StateSet\CostAnnotatedStateSet;
 use Toflar\StateSetIndex\StateSet\StateSetInterface;
 
@@ -18,6 +20,11 @@ class StateSetIndex
      * @var array<string, int>
      */
     private array $matchingStatesCache = [];
+
+    /**
+     * @var array<string, TrieFilter>
+     */
+    private array $trieFilters = [];
 
     public function __construct(
         private Config $config,
@@ -34,18 +41,17 @@ class StateSetIndex
      */
     public function find(string $string, int $editDistance): array
     {
+        $cacheKey = $string . "\0" . $editDistance;
         $acceptedStringsPerState = $this->findAcceptedStrings($string, $editDistance);
-        $stringLength = mb_strlen($string);
         $filtered = [];
+
+        if (!isset($this->trieFilters[$cacheKey])) {
+            $this->trieFilters[$cacheKey] = new TrieFilter(new Automaton($string, $editDistance));
+        }
 
         foreach ($acceptedStringsPerState as $acceptedStrings) {
             foreach ($acceptedStrings as $acceptedString) {
-                // Early aborts (cheaper) for cases we know are absolutely never going to match
-                if (abs($stringLength - mb_strlen($acceptedString)) > $editDistance) {
-                    continue;
-                }
-
-                if (Levenshtein::distance($string, $acceptedString) <= $editDistance) {
+                if ($this->trieFilters[$cacheKey]->matches($acceptedString)) {
                     $filtered[] = $acceptedString;
                 }
             }
@@ -168,6 +174,16 @@ class StateSetIndex
         }
 
         return $assigned;
+    }
+
+    /**
+     * Resets internal caches, use this in long-running processes in order to not run into a memory leak.
+     */
+    public function reset(): void
+    {
+        $this->indexCache = [];
+        $this->matchingStatesCache = [];
+        $this->trieFilters = [];
     }
 
     private function getReachableStates(int $startState, int $editDistance, int $currentDistance = 0): CostAnnotatedStateSet
