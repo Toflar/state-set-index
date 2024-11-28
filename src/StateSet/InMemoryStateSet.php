@@ -17,6 +17,11 @@ class InMemoryStateSet implements StateSetInterface
         $this->states[$state] = true;
     }
 
+    public function remove(int $state): void
+    {
+        unset($this->states[$state]);
+    }
+
     public function all(): array
     {
         return array_keys($this->states);

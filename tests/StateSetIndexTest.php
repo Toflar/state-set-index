@@ -62,4 +62,22 @@ class StateSetIndexTest extends TestCase
         $this->assertSame([54091 => ['assassin']], $stateSetIndex->findAcceptedStrings('assasin', 2));
         $this->assertSame(['assassin'], $stateSetIndex->find('assasin', 2));
     }
+
+    public function testRemoveFromIndex(): void
+    {
+        $stateSetIndex = new StateSetIndex(new Config(6, 4), new Utf8Alphabet(), new InMemoryStateSet(), new InMemoryDataStore());
+        $stateSetIndex->index(['Mueller']);
+
+        $onlyMuellerStates = $stateSetIndex->getStateSet()->all();
+
+        $stateSetIndex->removeFromIndex(['Mueller']);
+
+        $this->assertSame([], $stateSetIndex->getStateSet()->all());
+
+        $stateSetIndex->index(['Müller', 'Muentner', 'Muster', 'Mustermann', 'Mueller']);
+        $stateSetIndex->removeFromIndex(['Müller', 'Muentner', 'Muster', 'Mustermann']);
+
+        $this->assertEquals($onlyMuellerStates, $stateSetIndex->getStateSet()->all());
+        $this->assertSame(['Mueller'], $stateSetIndex->find('Mueler', 1));
+    }
 }
