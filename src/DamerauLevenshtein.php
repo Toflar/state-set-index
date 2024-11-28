@@ -32,8 +32,8 @@ class DamerauLevenshtein
             return 0;
         }
 
-        $string1Length = \strlen($string1);
-        $string2Length = \strlen($string2);
+        $string1Length = mb_strlen($string1);
+        $string2Length = mb_strlen($string2);
         $maxLength = max($string1Length, $string2Length);
         $maxDistance = min($maxDistance, $maxLength);
 
@@ -69,7 +69,7 @@ class DamerauLevenshtein
                 if ($col >= $string2Length) {
                     continue;
                 }
-                if ($i && ($string1[$i] ?? '') === ($string2[$col - 1] ?? '') && ($string1[$i - 1] ?? '') === ($string2[$col] ?? '')) {
+                if ($i && mb_substr($string1, $i, 1) === mb_substr($string2, $col - 1, 1) && mb_substr($string1, $i - 1, 1) === mb_substr($string2, $col, 1)) {
                     // In this case $matrix[$currentRow][$j] refers to the value
                     // two rows above and two columns to the left in the matrix.
                     $transpositioned = $matrix[$currentRow][$j] + $transpositionCost;
@@ -80,7 +80,7 @@ class DamerauLevenshtein
                     $transpositioned,
                     ($matrix[$lastRow][$j + 1] ?? $maxDistance) + $deletionCost,
                     ($matrix[$currentRow][$j - 1] ?? $maxDistance) + $insertionCost,
-                    ($matrix[$lastRow][$j] ?? $maxDistance) + ((($string1[$i] ?? '') === ($string2[$col] ?? '')) ? 0 : $replacementCost),
+                    ($matrix[$lastRow][$j] ?? $maxDistance) + ((mb_substr($string1, $i, 1) === mb_substr($string2, $col, 1)) ? 0 : $replacementCost),
                 );
             }
 

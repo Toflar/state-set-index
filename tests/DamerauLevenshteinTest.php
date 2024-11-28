@@ -97,5 +97,9 @@ class DamerauLevenshteinTest extends TestCase
         yield [1, '', 'a'];
         yield [1, 'a', ''];
 
+        yield [1, 'héllo', 'hello'];
+        yield [2, 'garçonnière', 'garconniere'];
+        yield [1, 'garçonnière', 'garçonniere'];
+
     }
 }
