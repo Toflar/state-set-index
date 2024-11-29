@@ -32,9 +32,9 @@ class StateSetIndex
      *
      * @return array<string>
      */
-    public function find(string $string, int $editDistance): array
+    public function find(string $string, int $editDistance, int $transpositionCost = 1): array
     {
-        $acceptedStringsPerState = $this->findAcceptedStrings($string, $editDistance);
+        $acceptedStringsPerState = $this->findAcceptedStrings($string, $editDistance, $transpositionCost);
         $stringLength = mb_strlen($string);
         $filtered = [];
 
@@ -45,7 +45,7 @@ class StateSetIndex
                     continue;
                 }
 
-                if (Levenshtein::distance($string, $acceptedString) <= $editDistance) {
+                if (DamerauLevenshtein::distance($string, $acceptedString, $editDistance + 1, 1, 1, 1, $transpositionCost) <= $editDistance) {
                     $filtered[] = $acceptedString;
                 }
             }
@@ -60,9 +60,9 @@ class StateSetIndex
      *
      * @return array<int,array<string>>
      */
-    public function findAcceptedStrings(string $string, int $editDistance): array
+    public function findAcceptedStrings(string $string, int $editDistance, int $transpositionCost): array
     {
-        return $this->dataStore->getForStates($this->findMatchingStates($string, $editDistance));
+        return $this->dataStore->getForStates($this->findMatchingStates($string, $editDistance, $transpositionCost));
     }
 
     /**
@@ -70,9 +70,9 @@ class StateSetIndex
      *
      * @return array<int>
      */
-    public function findMatchingStates(string $string, int $editDistance): array
+    public function findMatchingStates(string $string, int $editDistance, int $transpositionCost): array
     {
-        $cacheKey = $string . ';' . $editDistance;
+        $cacheKey = $string . ';' . $editDistance . ';' . $transpositionCost;
 
         // Seen this already, skip
         if (isset($this->matchingStatesCache[$cacheKey])) {
@@ -81,9 +81,12 @@ class StateSetIndex
 
         // Initial states
         $states = $this->getReachableStates(0, $editDistance);
+        $lastSubstitutions = [];
+        $lastMappedChar = null;
 
-        $this->loopOverEveryCharacter($string, function (int $mappedChar) use (&$states, $editDistance) {
+        $this->loopOverEveryCharacter($string, function (int $mappedChar) use (&$states, &$lastSubstitutions, &$lastMappedChar, $editDistance, $transpositionCost) {
             $statesStar = new CostAnnotatedStateSet(); // This is S∗ in the paper
+            $substitutionStates = [];
 
             foreach ($states->all() as $state => $cost) {
                 $statesStarC = new CostAnnotatedStateSet(); // This is S∗c in the paper
@@ -104,6 +107,8 @@ class StateSetIndex
                         } elseif ($cost + 1 <= $editDistance) {
                             // Substitution
                             $statesStarC->add($newState, $cost + 1);
+                            $substitutionStates[$i] ??= new CostAnnotatedStateSet();
+                            $substitutionStates[$i]->add($newState, $cost + 1);
                         }
                     }
                 }
@@ -118,7 +123,22 @@ class StateSetIndex
                 }
             }
 
+            // Transposition
+            // Takes all substitution states from the previous step that matched
+            // the current char and adds a followup substitution state using the
+            // previous char and assigns a combined cost of $transpositionCost.
+            foreach (($lastSubstitutions[$mappedChar] ?? null)?->all() ?? [] as $state => $cost) {
+                $newState = (int) ($state * $this->config->getAlphabetSize() + $lastMappedChar);
+                $statesStar = $statesStar->mergeWith($this->getReachableStates(
+                    $newState,
+                    $editDistance,
+                    $cost - 1 + $transpositionCost,
+                ));
+            }
+
             $states = $statesStar;
+            $lastMappedChar = $mappedChar;
+            $lastSubstitutions = $substitutionStates;
         });
 
         return $this->matchingStatesCache[$cacheKey] = $states->states();
