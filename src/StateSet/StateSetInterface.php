@@ -6,6 +6,8 @@ interface StateSetInterface
 {
     public function add(int $state): void;
 
+    public function remove(int $state): void;
+
     /**
      * @return array<int>
      */

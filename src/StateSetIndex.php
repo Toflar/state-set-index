@@ -170,6 +170,48 @@ class StateSetIndex
         return $assigned;
     }
 
+    /**
+     * Removes an array of strings from the index.
+     */
+    public function removeFromIndex(array $strings): void
+    {
+        foreach ($strings as $string) {
+            unset($this->indexCache[$string]);
+
+            $states = [];
+            $state = 0;
+            $this->loopOverEveryCharacter($string, function (int $mappedChar) use (&$state, &$states) {
+                $states[] = $state = (int) ($state * $this->config->getAlphabetSize() + $mappedChar);
+            });
+
+            $this->dataStore->remove($state, $string);
+
+            foreach (array_reverse($states) as $state) {
+                // If a state is shared with another string or a state exists that follows the current one we must stop
+                // the removal process as all previous states and the current one must be kept.
+                if (isset($this->dataStore->getForStates([$state])[$state]) || $this->hasNextState($state)) {
+                    continue 2;
+                }
+
+                $this->stateSet->remove($state);
+            }
+        }
+    }
+
+    /**
+     * Returns true if a state exists that follows the given state
+     */
+    private function hasNextState(int $state): bool
+    {
+        for ($c = 1; $c <= $this->config->getAlphabetSize(); ++$c) {
+            if ($this->stateSet->has($state * $this->config->getAlphabetSize() + $c)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private function getReachableStates(int $startState, int $editDistance, int $currentDistance = 0): CostAnnotatedStateSet
     {
         $reachable = new CostAnnotatedStateSet();

@@ -14,6 +14,17 @@ class InMemoryDataStore implements DataStoreInterface
         $this->data[$state][] = $string;
     }
 
+    public function remove(int $state, string $string): void
+    {
+        $updated = array_values(array_diff($this->data[$state] ?? [], [$string]));
+
+        if ($updated) {
+            $this->data[$state] = $updated;
+        } else {
+            unset($this->data[$state]);
+        }
+    }
+
     public function all(): array
     {
         return $this->data;

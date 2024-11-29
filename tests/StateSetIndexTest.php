@@ -62,4 +62,59 @@ class StateSetIndexTest extends TestCase
         $this->assertSame([54091 => ['assassin']], $stateSetIndex->findAcceptedStrings('assasin', 2));
         $this->assertSame(['assassin'], $stateSetIndex->find('assasin', 2));
     }
+
+    public function testRemoveFromIndex(): void
+    {
+        $stateSetIndex = new StateSetIndex(new Config(6, 4), new Utf8Alphabet(), new InMemoryStateSet(), new InMemoryDataStore());
+        $stateSetIndex->index(['Mueller']);
+
+        $onlyMuellerStates = $stateSetIndex->getStateSet()->all();
+
+        $stateSetIndex->removeFromIndex(['Mueller']);
+
+        $this->assertSame([], $stateSetIndex->getStateSet()->all());
+
+        $stateSetIndex->index(['Müller', 'Muentner', 'Muster', 'Mustermann', 'Mueller']);
+        $stateSetIndex->removeFromIndex(['Müller', 'Muentner', 'Muster', 'Mustermann']);
+
+        $this->assertEquals($onlyMuellerStates, $stateSetIndex->getStateSet()->all());
+        $this->assertSame(['Mueller'], $stateSetIndex->find('Mueler', 1));
+    }
+
+    public function testRemoveFromFullIndex(): void
+    {
+        $stateSetIndex = new StateSetIndex(new Config(5, 4), new Utf8Alphabet(), new InMemoryStateSet(), new InMemoryDataStore());
+        $stateSetIndex->index(['Mueller']);
+
+        $onlyMuellerStates = $stateSetIndex->getStateSet()->all();
+
+        $stateSetIndex->removeFromIndex(['Mueller']);
+
+        $this->assertSame([], $stateSetIndex->getStateSet()->all());
+
+        for ($i = 0; $i < $stateSetIndex->getConfig()->getAlphabetSize(); ++$i) {
+            $strings[] = \IntlChar::chr(97 + $i);
+        }
+
+        for ($length = 1; $length <= $stateSetIndex->getConfig()->getIndexLength(); ++$length) {
+            foreach ($strings as $string) {
+                for ($i = 0; $i < $stateSetIndex->getConfig()->getAlphabetSize(); ++$i) {
+                    $strings[] = $string . \IntlChar::chr(97 + $i);
+                }
+            }
+        }
+
+        // Fill every possible state for the configured length and size
+        $stateSetIndex->index($strings);
+        $stateSetIndex->index(['Mueller']);
+
+        $states = $stateSetIndex->getStateSet()->all();
+        sort($states);
+
+        $this->assertSame(range(1, (((4 * 4 + 4) * 4 + 4) * 4 + 4) * 4 + 4), $states, 'No state should be missing');
+
+        $stateSetIndex->removeFromIndex($strings);
+
+        $this->assertEquals($onlyMuellerStates, $stateSetIndex->getStateSet()->all());
+    }
 }
