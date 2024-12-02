@@ -15,6 +15,15 @@ class DamerauLevenshteinTest extends TestCase
     {
         $this->assertSame($expected, DamerauLevenshtein::distance($a, $b, $maxDistance));
         $this->assertSame($expected, DamerauLevenshtein::distance($b, $a, $maxDistance));
+        $this->assertSame($expected, DamerauLevenshtein::distance($a, $b, $expected));
+        $this->assertSame($expected, DamerauLevenshtein::distance($b, $a, $expected));
+        $this->assertSame($expected, DamerauLevenshtein::distance($a, $b, min($maxDistance, $expected + 1)));
+        $this->assertSame($expected, DamerauLevenshtein::distance($b, $a, min($maxDistance, $expected + 1)));
+
+        if ($expected > 0) {
+            $this->assertSame($expected - 1, DamerauLevenshtein::distance($a, $b, $expected - 1));
+            $this->assertSame($expected - 1, DamerauLevenshtein::distance($b, $a, $expected - 1));
+        }
     }
 
     public static function distanceProvider(): \Generator {
@@ -94,12 +103,32 @@ class DamerauLevenshteinTest extends TestCase
         yield [2, str_repeat('x', 1024), str_repeat('x', 1022).'__', 3];
         yield [3, str_repeat('x', 1024), str_repeat('x', 1021).'___', 4];
 
+        yield [1, str_repeat('x', 1024), '_'.str_repeat('x', 1023), 2];
+        yield [2, str_repeat('x', 1024), '_'.str_repeat('x', 1022).'_', 3];
+        yield [3, str_repeat('x', 1024), '_'.str_repeat('x', 1021).'__', 4];
+        yield [4, str_repeat('x', 1024), '_'.str_repeat('x', 1020).'___', 5];
+
         yield [1, '', 'a'];
         yield [1, 'a', ''];
 
         yield [1, 'héllo', 'hello'];
         yield [2, 'garçonnière', 'garconniere'];
         yield [1, 'garçonnière', 'garçonniere'];
+        yield [2, 'Ñörbärm', 'Üörbarm'];
+        yield [2, 'garçonnière', 'garconniere'];
+        yield [1, 'garçonnière', 'garçonniere'];
+        yield [1, 'пожар', 'пажар'];
+        yield [1, 'пожар', 'пожаr'];
+        yield [2, 'слово', 'слива'];
+        yield [4, 'стул', 'вода'];
+
+        yield [1, 'aaäaa', 'aaöaa'];
+        yield [1, 'prefix\xF0\x9F\x92\xA9', 'prefix\xF0\x9F\x92\xAF'];
+        yield [1, 'prefix\xF0\x9F\x92\xA9', 'prefix\xF0\x9F\x93\xA9'];
+        yield [1, '\xF0\x9F\x92\xA9suffix', '\xF0\x9F\x92\xAFsuffix'];
+        yield [1, '\xF0\x9F\x92\xA9suffix', '\xF0\x9F\x93\xA9suffix'];
+        yield [1, 'prefix\xF0\x9F\x92\xA9suffix', 'prefix\xF0\x9F\x92\xAFsuffix'];
+        yield [1, 'prefix\xF0\x9F\x92\xA9suffix', 'prefix\xF0\x9F\x93\xA9suffix'];
 
     }
 }
