@@ -50,6 +50,17 @@ class StateSetIndexTest extends TestCase
         $this->assertSame(['Muster'], $stateSetIndex->find('Mustre', 2));
     }
 
+    public function testWithLongWordSingleDeletion(): void
+    {
+        $stateSetIndex = new StateSetIndex(new Config(6, 4), new Utf8Alphabet(), new InMemoryStateSet(), new InMemoryDataStore());
+        $stateSetIndex->index(['Mustermann']);
+
+        $this->assertSame([2, 10, 44, 177, 710, 2843], $stateSetIndex->getStateSet()->all());
+        $this->assertSame([710, 2843], $stateSetIndex->findMatchingStates('Mutermann', 1, 1));
+        $this->assertSame([2843 => ['Mustermann']], $stateSetIndex->findAcceptedStrings('Mutermann', 1, 1));
+        $this->assertSame(['Mustermann'], $stateSetIndex->find('Mutermann', 1));
+    }
+
     /**
      * This use case occurred while testing 2.0.0, which is why this is added as additional test case.
      */
