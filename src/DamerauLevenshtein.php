@@ -32,8 +32,29 @@ class DamerauLevenshtein
             return 0;
         }
 
-        $string1Length = mb_strlen($string1);
-        $string2Length = mb_strlen($string2);
+        // Strip common prefix
+        $xorLeft = $string1 ^ $string2;
+        if ($commonPrefixLength = strspn($xorLeft, "\0")) {
+            $string1 = mb_strcut($string1, $commonPrefixLength);
+            $string2 = mb_strcut($string2, $commonPrefixLength);
+        }
+
+        // Strip common suffix
+        $xorRight = substr($string1, -\strlen($string2)) ^ substr($string2, -\strlen($string1));
+        if (\strlen($string1) === \strlen($string2) && $commonSuffixLength = \strlen($xorRight) - \strlen(rtrim($xorRight, "\0"))) {
+            $suffix = mb_strcut($string1, -$commonSuffixLength);
+            if (\strlen($suffix) > $commonSuffixLength) {
+                $suffix = mb_substr($suffix, 1);
+            }
+            $string1 = substr($string1, 0, -\strlen($suffix));
+            $string2 = substr($string2, 0, -\strlen($suffix));
+        }
+
+        $chars1 = mb_str_split($string1);
+        $chars2 = mb_str_split($string2);
+
+        $string1Length = \count($chars1);
+        $string2Length = \count($chars2);
         $maxLength = max($string1Length, $string2Length);
         $maxDistance = min($maxDistance, $maxLength);
 
@@ -69,7 +90,7 @@ class DamerauLevenshtein
                 if ($col >= $string2Length) {
                     continue;
                 }
-                if ($i && mb_substr($string1, $i, 1) === mb_substr($string2, $col - 1, 1) && mb_substr($string1, $i - 1, 1) === mb_substr($string2, $col, 1)) {
+                if ($i && ($chars1[$i] ?? '') === ($chars2[$col - 1] ?? '') && ($chars1[$i - 1] ?? '') === ($chars2[$col] ?? '')) {
                     // In this case $matrix[$currentRow][$j] refers to the value
                     // two rows above and two columns to the left in the matrix.
                     $transpositioned = $matrix[$currentRow][$j] + $transpositionCost;
@@ -80,7 +101,7 @@ class DamerauLevenshtein
                     $transpositioned,
                     ($matrix[$lastRow][$j + 1] ?? $maxDistance) + $deletionCost,
                     ($matrix[$currentRow][$j - 1] ?? $maxDistance) + $insertionCost,
-                    ($matrix[$lastRow][$j] ?? $maxDistance) + ((mb_substr($string1, $i, 1) === mb_substr($string2, $col, 1)) ? 0 : $replacementCost),
+                    ($matrix[$lastRow][$j] ?? $maxDistance) + ((($chars1[$i] ?? '') === ($chars2[$col] ?? '')) ? 0 : $replacementCost),
                 );
             }
 
@@ -89,6 +110,6 @@ class DamerauLevenshtein
             }
         }
 
-        return $matrix[$currentRow ?? 0][$maxInsertions - ($string1Length - $string2Length)];
+        return min($maxDistance, $matrix[$currentRow ?? 0][$maxInsertions - ($string1Length - $string2Length)]);
     }
 }

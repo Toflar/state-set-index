@@ -82,7 +82,7 @@ class StateSetIndexTest extends TestCase
 
     public function testRemoveFromIndex(): void
     {
-        $stateSetIndex = new StateSetIndex(new Config(6, 4), new Utf8Alphabet(), new InMemoryStateSet(), new InMemoryDataStore());
+        $stateSetIndex = new StateSetIndex(new Config(14, 4), new Utf8Alphabet(), new InMemoryStateSet(), new InMemoryDataStore());
         $stateSetIndex->index(['Mueller']);
 
         $onlyMuellerStates = $stateSetIndex->getStateSet()->all();
