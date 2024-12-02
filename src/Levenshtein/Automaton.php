@@ -6,93 +6,76 @@ namespace Toflar\StateSetIndex\Levenshtein;
 
 class Automaton
 {
-    /**
-     * @var array<string>
-     */
-    private array $chars = [];
+    private array $chars;
 
     private int $length;
 
     public function __construct(
         private string $string,
-        private int $maxDistance
+        private int $maxDistance,
+        private int $insertionCost = 1,
+        private int $deletionCost = 1,
+        private int $replacementCost = 1,
+        private int $transpositionCost = 1
     ) {
         $this->length = mb_strlen($this->string);
         $this->chars = mb_str_split($this->string);
     }
 
-    /**
-     * @param array<int, array<int>> $indicesValues
-     */
-    public function canMatch(array $indicesValues): bool
+    public function canMatch(array $state): bool
     {
-        [$indices, $values] = $indicesValues;
-        return !empty($indices);
+        foreach ($state as $distance) {
+            if ($distance <= $this->maxDistance) {
+                return true;
+            }
+        }
+        return false;
     }
 
-    public function getMaxDistance(): int
+    public function isMatch(array $state): bool
     {
-        return $this->maxDistance;
+        return isset($state[$this->length]) && $state[$this->length] <= $this->maxDistance;
     }
 
-    public function getString(): string
-    {
-        return $this->string;
-    }
-
-    /**
-     * @param array<int, array<int>> $indicesValues
-     */
-    public function isMatch(array $indicesValues): bool
-    {
-        [$indices, $values] = $indicesValues;
-        return !empty($indices) && end($indices) === $this->length;
-    }
-
-    /**
-     * @return array<int, array<int>>
-     */
     public function start(): array
     {
-        return [range(0, $this->maxDistance), range(0, $this->maxDistance)];
+        return [
+            0 => 0,
+        ];
     }
 
-    /**
-     * @param array<int, array<int>> $indicesValues
-     * @return array<int, array<int>>
-     */
-    public function step(array $indicesValues, string $c): array
+    public function step(array $state, string $inputChar): array
     {
-        [$indices, $values] = $indicesValues;
-        $new_indices = [];
-        $new_values = [];
+        $newState = [];
+        foreach ($state as $position => $distance) {
+            if ($distance > $this->maxDistance) {
+                continue;
+            }
 
-        if (!empty($indices) && $indices[0] === 0 && $values[0] < $this->maxDistance) {
-            $new_indices[] = 0;
-            $new_values[] = $values[0] + 1;
+            // Insertion: Stay in the same position in the target
+            $newState[$position] = min($newState[$position] ?? PHP_INT_MAX, $distance + $this->insertionCost);
+
+            // Deletion: Move forward in the target
+            if ($position < $this->length) {
+                $newState[$position + 1] = min($newState[$position + 1] ?? PHP_INT_MAX, $distance + $this->deletionCost);
+            }
+
+            // Replacement or Match: Move forward in the target and input
+            if ($position < $this->length) {
+                $replacementCost = ($this->chars[$position] === $inputChar) ? 0 : $this->replacementCost;
+                $newState[$position + 1] = min($newState[$position + 1] ?? PHP_INT_MAX, $distance + $replacementCost);
+            }
+
+            // Transposition: Swap adjacent characters
+            if (
+                $position < $this->length - 1 &&
+                isset($this->chars[$position + 1]) &&
+                $this->chars[$position + 1] === $inputChar
+            ) {
+                $newState[$position + 2] = min($newState[$position + 2] ?? PHP_INT_MAX, $distance + $this->transpositionCost);
+            }
         }
 
-        foreach ($indices as $j => $i) {
-            if ($i === $this->length) {
-                break;
-            }
-            $cost = ($this->chars[$i] === $c) ? 0 : 1;
-            $val = $values[$j] + $cost;
-
-            if (!empty($new_indices) && end($new_indices) === $i) {
-                $val = min($val, end($new_values) + 1);
-            }
-
-            if ($j + 1 < \count($indices) && $indices[$j + 1] === $i + 1) {
-                $val = min($val, $values[$j + 1] + 1);
-            }
-
-            if ($val <= $this->maxDistance) {
-                $new_indices[] = $i + 1;
-                $new_values[] = $val;
-            }
-        }
-
-        return [$new_indices, $new_values];
+        return $newState;
     }
 }

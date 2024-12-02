@@ -9,7 +9,6 @@ use Toflar\StateSetIndex\Levenshtein\TrieFilter;
 
 class TrieFilterTest extends TestCase
 {
-
     public static function filterProvider(): \Generator
     {
         yield [
@@ -45,6 +44,18 @@ class TrieFilterTest extends TestCase
                 48 => 'garçonniere',
             ],
         ];
+
+        yield [
+            'foobar',
+            2,
+            ['foob', 'foobar', 'fooxar', 'example', 'foobix'],
+            [
+                0 => 'foob',
+                1 => 'foobar',
+                2 => 'fooxar',
+                4 => 'foobix',
+            ],
+        ];
     }
 
     /**
@@ -55,7 +66,6 @@ class TrieFilterTest extends TestCase
     public function testFiltering(string $query, int $maxDistance, array $stringsToFilter, array $expectedFiltered): void
     {
         $filter = new TrieFilter(new Automaton($query, $maxDistance));
-
         $this->assertSame($expectedFiltered, $filter->filterStrings($stringsToFilter));
     }
 
@@ -79,5 +89,23 @@ class TrieFilterTest extends TestCase
     {
         $filter = new TrieFilter(new Automaton('assasin', 2));
         $this->assertTrue($filter->matches('assassin'));
+    }
+
+    public function testCustomCosts(): void
+    {
+        // Using higher replacement cost
+        $filter = new TrieFilter(new Automaton('foobar', 2, 1, 1, 3, 1));
+        $this->assertTrue($filter->matches('foobar')); // Exact match
+        $this->assertTrue($filter->matches('foob'));   // Deletion (cost 1)
+        $this->assertFalse($filter->matches('fooxar')); // Replacement cost too high
+    }
+
+    public function testTranspositions(): void
+    {
+        // Using transposition cost of 1
+        $filter = new TrieFilter(new Automaton('foobar', 2, 1, 1, 1, 1));
+        $this->assertTrue($filter->matches('foboar')); // Transposition
+        $this->assertTrue($filter->matches('foobar')); // Exact match
+        $this->assertFalse($filter->matches('fooxar')); // Beyond max distance
     }
 }

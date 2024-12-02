@@ -4,22 +4,16 @@ namespace Toflar\StateSetIndex\Levenshtein;
 
 class TrieFilter
 {
-    /**
-     * @var array<string, bool>
-     */
-    private array $trie = [];
+    private array $trie = [
+        'children' => [],
+        'canMatch' => null,
+    ];
 
     public function __construct(
         private Automaton $automaton
     ) {
     }
 
-    /**
-     * The keys are kept when filtering, so you can use that for e.g. ID assignment or anything else.
-     *
-     * @param array<string|int, string> $strings
-     * @return array<string|int, string>
-     */
     public function filterStrings(array $strings): array
     {
         $matches = [];
@@ -27,30 +21,33 @@ class TrieFilter
         foreach ($strings as $key => $string) {
             $state = $this->automaton->start();
             $chars = mb_str_split($string);
-            $prefix = '';
+            $node = &$this->trie;
 
-            while ([] !== $chars) {
-                $char = array_shift($chars);
-                $prefix .= $char;
+            foreach ($chars as $char) {
+                if (isset($node['children'][$char])) {
+                    $node = &$node['children'][$char];
+                    $state = $this->automaton->step($state, $char);
 
-                // Cannot match, drop the string
-                if (isset($this->trie[$prefix]) && $this->trie[$prefix] === false) {
-                    continue 2; // Next string
-                }
+                    if ($node['canMatch'] === false) {
+                        continue 2; // Skip to the next string
+                    }
+                } else {
+                    $state = $this->automaton->step($state, $char);
+                    $canMatch = $this->automaton->canMatch($state);
 
-                // Next state for the next character
-                $state = $this->automaton->step($state, $char);
+                    $node['children'][$char] = [
+                        'children' => [],
+                        'canMatch' => $canMatch,
+                    ];
+                    $node = &$node['children'][$char];
 
-                // Remember if that prefix can be matched or not to allow pruning the tree
-                $this->trie[$prefix] = $this->automaton->canMatch($state);
-
-                if (!$this->trie[$prefix]) {
-                    continue 2; // Next string
+                    if (!$canMatch) {
+                        continue 2; // Skip to the next string
+                    }
                 }
             }
 
-            // Match
-            if (true === $this->trie[$prefix]) {
+            if ($this->automaton->isMatch($state)) {
                 $matches[$key] = $string;
             }
         }
