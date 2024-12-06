@@ -28,10 +28,6 @@ class DamerauLevenshtein
      */
     public static function distance(string $string1, string $string2, int $maxDistance = PHP_INT_MAX, int $insertionCost = 1, int $replacementCost = 1, int $deletionCost = 1, int $transpositionCost = 1): int
     {
-        if ($string1 === $string2) {
-            return 0;
-        }
-
         // Strip common prefix
         $xorLeft = $string1 ^ $string2;
         if ($commonPrefixLength = strspn($xorLeft, "\0")) {
@@ -41,20 +37,28 @@ class DamerauLevenshtein
 
         // Strip common suffix
         $xorRight = substr($string1, -\strlen($string2)) ^ substr($string2, -\strlen($string1));
-        if (\strlen($string1) === \strlen($string2) && $commonSuffixLength = \strlen($xorRight) - \strlen(rtrim($xorRight, "\0"))) {
+        if ($commonSuffixLength = \strlen($xorRight) - \strlen(rtrim($xorRight, "\0"))) {
             $suffix = mb_strcut($string1, -$commonSuffixLength);
             if (\strlen($suffix) > $commonSuffixLength) {
                 $suffix = mb_substr($suffix, 1);
             }
-            $string1 = substr($string1, 0, -\strlen($suffix));
-            $string2 = substr($string2, 0, -\strlen($suffix));
+            $string1 = substr($string1, 0, -\strlen($suffix) ?: null);
+            $string2 = substr($string2, 0, -\strlen($suffix) ?: null);
         }
 
         $chars1 = mb_str_split($string1);
         $chars2 = mb_str_split($string2);
-
         $string1Length = \count($chars1);
         $string2Length = \count($chars2);
+
+        if ($string1Length === 0) {
+            return min($maxDistance, $string2Length);
+        }
+
+        if ($string2Length === 0) {
+            return min($maxDistance, $string1Length);
+        }
+
         $maxLength = max($string1Length, $string2Length);
         $maxDistance = min($maxDistance, $maxLength);
 

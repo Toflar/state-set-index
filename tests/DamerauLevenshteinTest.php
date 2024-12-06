@@ -123,12 +123,12 @@ class DamerauLevenshteinTest extends TestCase
         yield [4, 'стул', 'вода'];
 
         yield [1, 'aaäaa', 'aaöaa'];
-        yield [1, 'prefix\xF0\x9F\x92\xA9', 'prefix\xF0\x9F\x92\xAF'];
-        yield [1, 'prefix\xF0\x9F\x92\xA9', 'prefix\xF0\x9F\x93\xA9'];
-        yield [1, '\xF0\x9F\x92\xA9suffix', '\xF0\x9F\x92\xAFsuffix'];
-        yield [1, '\xF0\x9F\x92\xA9suffix', '\xF0\x9F\x93\xA9suffix'];
-        yield [1, 'prefix\xF0\x9F\x92\xA9suffix', 'prefix\xF0\x9F\x92\xAFsuffix'];
-        yield [1, 'prefix\xF0\x9F\x92\xA9suffix', 'prefix\xF0\x9F\x93\xA9suffix'];
+        yield [1, "prefix\xF0\x9F\x92\xA9", "prefix\xF0\x9F\x92\xAF"];
+        yield [1, "prefix\xF0\x9F\x92\xA9", "prefix\xF0\x9F\x93\xA9"];
+        yield [1, "\xF0\x9F\x92\xA9suffix", "\xF0\x9F\x92\xAFsuffix"];
+        yield [1, "\xF0\x9F\x92\xA9suffix", "\xF0\x9F\x93\xA9suffix"];
+        yield [1, "prefix\xF0\x9F\x92\xA9suffix", "prefix\xF0\x9F\x92\xAFsuffix"];
+        yield [1, "prefix\xF0\x9F\x92\xA9suffix", "prefix\xF0\x9F\x93\xA9suffix"];
 
     }
 }
