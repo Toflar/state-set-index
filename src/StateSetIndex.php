@@ -84,12 +84,17 @@ class StateSetIndex
         $lastSubstitutions = [];
         $lastMappedChar = null;
 
-        $this->loopOverEveryCharacter($string, function (int $mappedChar) use (&$states, &$lastSubstitutions, &$lastMappedChar, $editDistance, $transpositionCost) {
+        $this->loopOverEveryCharacter($string, function (int $mappedChar, int $index) use (&$states, &$lastSubstitutions, &$lastMappedChar, $editDistance, $transpositionCost) {
             $statesStar = new CostAnnotatedStateSet(); // This is S∗ in the paper
             $substitutionStates = [];
 
             foreach ($states->all() as $state => $cost) {
                 $statesStarC = new CostAnnotatedStateSet(); // This is S∗c in the paper
+
+                // Match for non-indexed cut-off characters
+                if ($index >= $this->config->getIndexLength() - $editDistance) {
+                    $statesStarC->add($state, $cost);
+                }
 
                 // Deletion
                 if ($cost + 1 <= $editDistance) {
@@ -258,16 +263,16 @@ class StateSetIndex
     }
 
     /**
-     * @param \Closure(int) $closure
+     * @param \Closure(int, int) $closure
      */
     private function loopOverEveryCharacter(string $string, \Closure $closure): void
     {
         $indexedSubstringLength = min($this->config->getIndexLength(), mb_strlen($string));
         $indexedSubstring = mb_substr($string, 0, $indexedSubstringLength);
 
-        foreach (mb_str_split($indexedSubstring) as $char) {
+        foreach (mb_str_split($indexedSubstring) as $index => $char) {
             $mappedChar = $this->alphabet->map($char, $this->config->getAlphabetSize());
-            $closure($mappedChar);
+            $closure($mappedChar, $index);
         }
     }
 }
