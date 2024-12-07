@@ -38,6 +38,9 @@ class StateSetIndexTest extends TestCase
         $this->assertSame([104, 419, 467, 1677, 1811], $stateSetIndex->findMatchingStates('Mustre', 2, 2));
         $this->assertSame([1811 => ['Mueller'], 1677 => ['Muster', 'Mustermann']], $stateSetIndex->findAcceptedStrings('Mustre', 2, 2));
         $this->assertSame(['Muster'], $stateSetIndex->find('Mustre', 2, 2));
+
+        // Match word cut off by index length
+        $this->assertSame(['Mueller'], $stateSetIndex->find('Mueler', 1));
     }
 
     public function testWithUtf8Alphabet(): void
@@ -56,7 +59,7 @@ class StateSetIndexTest extends TestCase
         $stateSetIndex->index(['Mustermann']);
 
         $this->assertSame([2, 10, 44, 177, 710, 2843], $stateSetIndex->getStateSet()->all());
-        $this->assertSame([710, 2843], $stateSetIndex->findMatchingStates('Mutermann', 1, 1));
+        $this->assertSame([2843], $stateSetIndex->findMatchingStates('Mutermann', 1, 1));
         $this->assertSame([2843 => ['Mustermann']], $stateSetIndex->findAcceptedStrings('Mutermann', 1, 1));
         $this->assertSame(['Mustermann'], $stateSetIndex->find('Mutermann', 1));
     }
