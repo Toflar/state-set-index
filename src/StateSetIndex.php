@@ -218,20 +218,6 @@ class StateSetIndex
         }
     }
 
-    /**
-     * Returns true if a state exists that follows the given state
-     */
-    private function hasNextState(int $state): bool
-    {
-        for ($c = 1; $c <= $this->config->getAlphabetSize(); ++$c) {
-            if ($this->stateSet->has($state * $this->config->getAlphabetSize() + $c)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     private function getReachableStates(int $startState, int $editDistance, int $currentDistance = 0): CostAnnotatedStateSet
     {
         $reachable = new CostAnnotatedStateSet();
@@ -255,6 +241,20 @@ class StateSetIndex
         }
 
         return $reachable;
+    }
+
+    /**
+     * Returns true if a state exists that follows the given state
+     */
+    private function hasNextState(int $state): bool
+    {
+        for ($c = 1; $c <= $this->config->getAlphabetSize(); ++$c) {
+            if ($this->stateSet->has($state * $this->config->getAlphabetSize() + $c)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

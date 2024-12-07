@@ -9,13 +9,13 @@ class NullDataStore implements DataStoreInterface
         // noop
     }
 
-    public function remove(int $state, string $string): void
-    {
-        // noop
-    }
-
     public function getForStates(array $states = []): array
     {
         return [];
+    }
+
+    public function remove(int $state, string $string): void
+    {
+        // noop
     }
 }

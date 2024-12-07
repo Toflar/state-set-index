@@ -14,6 +14,16 @@ class InMemoryDataStore implements DataStoreInterface
         $this->data[$state][] = $string;
     }
 
+    public function all(): array
+    {
+        return $this->data;
+    }
+
+    public function getForStates(array $states = []): array
+    {
+        return array_intersect_key($this->data, array_flip($states));
+    }
+
     public function remove(int $state, string $string): void
     {
         $updated = array_values(array_diff($this->data[$state] ?? [], [$string]));
@@ -23,15 +33,5 @@ class InMemoryDataStore implements DataStoreInterface
         } else {
             unset($this->data[$state]);
         }
-    }
-
-    public function all(): array
-    {
-        return $this->data;
-    }
-
-    public function getForStates(array $states = []): array
-    {
-        return array_intersect_key($this->data, array_flip($states));
     }
 }
