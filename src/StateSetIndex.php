@@ -79,12 +79,15 @@ class StateSetIndex
             return $this->matchingStatesCache[$cacheKey];
         }
 
+        $indexLength = $this->config->getIndexLength();
+        $alphabetSize = $this->config->getAlphabetSize();
+
         // Initial states
-        $states = $this->getReachableStates(0, $editDistance);
+        $states = $this->getReachableStates($alphabetSize, 0, $editDistance);
         $lastSubstitutions = [];
         $lastMappedChar = null;
 
-        $this->loopOverEveryCharacter($string, function (int $mappedChar) use (&$states, &$lastSubstitutions, &$lastMappedChar, $editDistance, $transpositionCost) {
+        $this->loopOverEveryCharacter($indexLength, $alphabetSize, $string, function (int $mappedChar) use (&$states, &$lastSubstitutions, &$lastMappedChar, $editDistance, $transpositionCost, $alphabetSize) {
             $statesStar = new CostAnnotatedStateSet(); // This is S∗ in the paper
             $substitutionStates = [];
 
@@ -97,8 +100,8 @@ class StateSetIndex
                 }
 
                 // Match & Substitution
-                for ($i = 1; $i <= $this->config->getAlphabetSize(); $i++) {
-                    $newState = (int) ($state * $this->config->getAlphabetSize() + $i);
+                for ($i = 1; $i <= $alphabetSize; $i++) {
+                    $newState = (int) ($state * $alphabetSize + $i);
 
                     if ($this->stateSet->has($newState)) {
                         if ($i === $mappedChar) {
@@ -116,6 +119,7 @@ class StateSetIndex
                 // Insertion
                 foreach ($statesStarC->all() as $newState => $newCost) {
                     $statesStar = $statesStar->mergeWith($this->getReachableStates(
+                        $alphabetSize,
                         $newState,
                         $editDistance,
                         $newCost
@@ -128,8 +132,9 @@ class StateSetIndex
             // the current char and adds a followup substitution state using the
             // previous char and assigns a combined cost of $transpositionCost.
             foreach (($lastSubstitutions[$mappedChar] ?? null)?->all() ?? [] as $state => $cost) {
-                $newState = (int) ($state * $this->config->getAlphabetSize() + $lastMappedChar);
+                $newState = (int) ($state * $alphabetSize + $lastMappedChar);
                 $statesStar = $statesStar->mergeWith($this->getReachableStates(
+                    $alphabetSize,
                     $newState,
                     $editDistance,
                     $cost - 1 + $transpositionCost,
@@ -167,6 +172,8 @@ class StateSetIndex
     public function index(array $strings): array
     {
         $assigned = [];
+        $indexLength = $this->config->getIndexLength();
+        $alphabetSize = $this->config->getAlphabetSize();
 
         foreach ($strings as $string) {
             // Seen this already, skip
@@ -176,8 +183,8 @@ class StateSetIndex
             }
 
             $state = 0;
-            $this->loopOverEveryCharacter($string, function (int $mappedChar) use (&$state) {
-                $newState = (int) ($state * $this->config->getAlphabetSize() + $mappedChar);
+            $this->loopOverEveryCharacter($indexLength, $alphabetSize, $string, function (int $mappedChar) use (&$state, $alphabetSize) {
+                $newState = (int) ($state * $alphabetSize + $mappedChar);
 
                 $this->stateSet->add($newState);
                 $state = $newState;
@@ -195,13 +202,16 @@ class StateSetIndex
      */
     public function removeFromIndex(array $strings): void
     {
+        $indexLength = $this->config->getIndexLength();
+        $alphabetSize = $this->config->getAlphabetSize();
+
         foreach ($strings as $string) {
             unset($this->indexCache[$string]);
 
             $states = [];
             $state = 0;
-            $this->loopOverEveryCharacter($string, function (int $mappedChar) use (&$state, &$states) {
-                $states[] = $state = (int) ($state * $this->config->getAlphabetSize() + $mappedChar);
+            $this->loopOverEveryCharacter($indexLength, $alphabetSize, $string, function (int $mappedChar) use (&$state, &$states, $alphabetSize) {
+                $states[] = $state = (int) ($state * $alphabetSize + $mappedChar);
             });
 
             $this->dataStore->remove($state, $string);
@@ -209,7 +219,7 @@ class StateSetIndex
             foreach (array_reverse($states) as $state) {
                 // If a state is shared with another string or a state exists that follows the current one we must stop
                 // the removal process as all previous states and the current one must be kept.
-                if (isset($this->dataStore->getForStates([$state])[$state]) || $this->hasNextState($state)) {
+                if (isset($this->dataStore->getForStates([$state])[$state]) || $this->hasNextState($state, $alphabetSize)) {
                     continue 2;
                 }
 
@@ -218,7 +228,7 @@ class StateSetIndex
         }
     }
 
-    private function getReachableStates(int $startState, int $editDistance, int $currentDistance = 0): CostAnnotatedStateSet
+    private function getReachableStates(int $alphabetSize, int $startState, int $editDistance, int $currentDistance = 0): CostAnnotatedStateSet
     {
         $reachable = new CostAnnotatedStateSet();
 
@@ -233,10 +243,10 @@ class StateSetIndex
             return $reachable;
         }
 
-        for ($c = 1; $c <= $this->config->getAlphabetSize(); $c++) {
-            $state = $startState * $this->config->getAlphabetSize() + $c;
+        for ($c = 1; $c <= $alphabetSize; $c++) {
+            $state = $startState * $alphabetSize + $c;
             if ($this->stateSet->has($state)) {
-                $reachable = $reachable->mergeWith($this->getReachableStates($state, $editDistance, $currentDistance + 1));
+                $reachable = $reachable->mergeWith($this->getReachableStates($alphabetSize, $state, $editDistance, $currentDistance + 1));
             }
         }
 
@@ -246,10 +256,10 @@ class StateSetIndex
     /**
      * Returns true if a state exists that follows the given state
      */
-    private function hasNextState(int $state): bool
+    private function hasNextState(int $state, int $alphabetSize): bool
     {
-        for ($c = 1; $c <= $this->config->getAlphabetSize(); ++$c) {
-            if ($this->stateSet->has($state * $this->config->getAlphabetSize() + $c)) {
+        for ($c = 1; $c <= $alphabetSize; ++$c) {
+            if ($this->stateSet->has($state * $alphabetSize + $c)) {
                 return true;
             }
         }
@@ -260,13 +270,13 @@ class StateSetIndex
     /**
      * @param \Closure(int) $closure
      */
-    private function loopOverEveryCharacter(string $string, \Closure $closure): void
+    private function loopOverEveryCharacter(int $indexLength, int $alphabetSize, string $string, \Closure $closure): void
     {
-        $indexedSubstringLength = min($this->config->getIndexLength(), mb_strlen($string));
+        $indexedSubstringLength = min($indexLength, mb_strlen($string));
         $indexedSubstring = mb_substr($string, 0, $indexedSubstringLength);
 
         foreach (mb_str_split($indexedSubstring) as $char) {
-            $mappedChar = $this->alphabet->map($char, $this->config->getAlphabetSize());
+            $mappedChar = $this->alphabet->map($char, $alphabetSize);
             $closure($mappedChar);
         }
     }
