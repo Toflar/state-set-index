@@ -93,7 +93,7 @@ class StateSetIndex
         $lastSubstitutions = [];
         $lastMappedChar = null;
 
-        $this->loopOverEveryCharacter($indexLength, $alphabetSize, $string, function (int $mappedChar, int $index) use (&$states, &$lastSubstitutions, &$lastMappedChar, $editDistance, $transpositionCost, $indexLength, $alphabetSize, $cutOffLowerBound) {
+        $this->loopOverEveryCharacter($indexLength, $alphabetSize, $string, function (int $mappedChar) use (&$states, &$lastSubstitutions, &$lastMappedChar, $editDistance, $transpositionCost, $alphabetSize, $cutOffLowerBound) {
             $statesStar = new CostAnnotatedStateSet(); // This is S∗ in the paper
             $substitutionStates = [];
 
@@ -101,7 +101,7 @@ class StateSetIndex
                 $statesStarC = new CostAnnotatedStateSet(); // This is S∗c in the paper
 
                 // Match for characters that got cut off during indexing because they appear past the index length
-                if ($state > $cutOffLowerBound && $index >= $indexLength - $editDistance) {
+                if ($state > $cutOffLowerBound) {
                     $statesStarC->add($state, $cost);
                 }
 
@@ -279,16 +279,16 @@ class StateSetIndex
     }
 
     /**
-     * @param \Closure(int, int) $closure
+     * @param \Closure(int) $closure
      */
     private function loopOverEveryCharacter(int $indexLength, int $alphabetSize, string $string, \Closure $closure): void
     {
         $indexedSubstringLength = min($indexLength, mb_strlen($string));
         $indexedSubstring = mb_substr($string, 0, $indexedSubstringLength);
 
-        foreach (mb_str_split($indexedSubstring) as $index => $char) {
+        foreach (mb_str_split($indexedSubstring) as $char) {
             $mappedChar = $this->alphabet->map($char, $alphabetSize);
-            $closure($mappedChar, $index);
+            $closure($mappedChar);
         }
     }
 }
