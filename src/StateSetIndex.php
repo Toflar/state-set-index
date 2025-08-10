@@ -79,20 +79,26 @@ class StateSetIndex
             return $this->matchingStatesCache[$cacheKey];
         }
 
+        // Calculate the lower bound of all possible states that reach the index length
+        $cutOffLowerBound = 0;
+        for ($i = 1; $i < $this->config->getIndexLength(); ++$i) {
+            $cutOffLowerBound = $cutOffLowerBound * $this->config->getAlphabetSize() + $this->config->getAlphabetSize();
+        }
+
         // Initial states
         $states = $this->getReachableStates(0, $editDistance);
         $lastSubstitutions = [];
         $lastMappedChar = null;
 
-        $this->loopOverEveryCharacter($string, function (int $mappedChar, int $index) use (&$states, &$lastSubstitutions, &$lastMappedChar, $editDistance, $transpositionCost) {
+        $this->loopOverEveryCharacter($string, function (int $mappedChar, int $index) use (&$states, &$lastSubstitutions, &$lastMappedChar, $editDistance, $transpositionCost, $cutOffLowerBound) {
             $statesStar = new CostAnnotatedStateSet(); // This is S∗ in the paper
             $substitutionStates = [];
 
             foreach ($states->all() as $state => $cost) {
                 $statesStarC = new CostAnnotatedStateSet(); // This is S∗c in the paper
 
-                // Match for non-indexed cut-off characters
-                if ($index >= $this->config->getIndexLength() - $editDistance) {
+                // Match for characters that got cut off during indexing because they appear past the index length
+                if ($state > $cutOffLowerBound && $index >= $this->config->getIndexLength() - $editDistance) {
                     $statesStarC->add($state, $cost);
                 }
 
