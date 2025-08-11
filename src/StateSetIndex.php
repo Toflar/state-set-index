@@ -147,12 +147,15 @@ class StateSetIndex
             // previous char and assigns a combined cost of $transpositionCost.
             foreach (($lastSubstitutions[$mappedChar] ?? null)?->all() ?? [] as $state => $cost) {
                 $newState = (int) ($state * $alphabetSize + $lastMappedChar);
-                $statesStar = $statesStar->mergeWith($this->getReachableStates(
-                    $alphabetSize,
-                    $newState,
-                    $editDistance,
-                    $cost - 1 + $transpositionCost,
-                ));
+
+                if ($this->stateSet->has($newState)) {
+                    $statesStar = $statesStar->mergeWith($this->getReachableStates(
+                        $alphabetSize,
+                        $newState,
+                        $editDistance,
+                        $cost - 1 + $transpositionCost,
+                    ));
+                }
             }
 
             $states = $statesStar;
