@@ -103,11 +103,13 @@ class StateSetIndex
                 for ($i = 1; $i <= $alphabetSize; $i++) {
                     $newState = (int) ($state * $alphabetSize + $i);
 
-                    if ($this->stateSet->has($newState)) {
-                        if ($i === $mappedChar) {
+                    if ($i === $mappedChar) {
+                        if ($this->stateSet->has($newState)) {
                             // Match
                             $statesStarC->add($newState, $cost);
-                        } elseif ($cost + 1 <= $editDistance) {
+                        }
+                    } elseif ($cost + 1 <= $editDistance) {
+                        if ($this->stateSet->has($newState)) {
                             // Substitution
                             $statesStarC->add($newState, $cost + 1);
                             $substitutionStates[$i] ??= new CostAnnotatedStateSet();
