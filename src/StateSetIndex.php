@@ -82,17 +82,31 @@ class StateSetIndex
         $indexLength = $this->config->getIndexLength();
         $alphabetSize = $this->config->getAlphabetSize();
 
+        // Calculate the lower bound of all possible states that reach the index length
+        $cutOffLowerBound = PHP_INT_MAX;
+        if (mb_strlen($string) > $indexLength - $editDistance) {
+            $cutOffLowerBound = 0;
+            for ($i = 1; $i < $indexLength; ++$i) {
+                $cutOffLowerBound = $cutOffLowerBound * $alphabetSize + $alphabetSize;
+            }
+        }
+
         // Initial states
         $states = $this->getReachableStates($alphabetSize, 0, $editDistance);
         $lastSubstitutions = [];
         $lastMappedChar = null;
 
-        $this->loopOverEveryCharacter($indexLength, $alphabetSize, $string, function (int $mappedChar) use (&$states, &$lastSubstitutions, &$lastMappedChar, $editDistance, $transpositionCost, $alphabetSize) {
+        $this->loopOverEveryCharacter($indexLength, $alphabetSize, $string, function (int $mappedChar) use (&$states, &$lastSubstitutions, &$lastMappedChar, $editDistance, $transpositionCost, $alphabetSize, $cutOffLowerBound) {
             $statesStar = new CostAnnotatedStateSet(); // This is S∗ in the paper
             $substitutionStates = [];
 
             foreach ($states->all() as $state => $cost) {
                 $statesStarC = new CostAnnotatedStateSet(); // This is S∗c in the paper
+
+                // Match for characters that got cut off during indexing because they appear past the index length
+                if ($state > $cutOffLowerBound) {
+                    $statesStarC->add($state, $cost);
+                }
 
                 // Deletion
                 if ($cost + 1 <= $editDistance) {
