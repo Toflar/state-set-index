@@ -100,6 +100,43 @@ class StateSetIndexTest extends TestCase
         $this->assertSame(['assassin'], $stateSetIndex->find('assasin', 2, 2));
     }
 
+    public function testMatchingStatesCacheIsClearedAfterIndexing(): void
+    {
+        $stateSetIndex = new StateSetIndex(new Config(14, 4), new Utf8Alphabet(), new InMemoryStateSet(), new InMemoryDataStore());
+        $indexed = $stateSetIndex->index(['Mueller']);
+        $muellerState = $indexed['Mueller'];
+
+        $before = $stateSetIndex->findMatchingStates('Mueler', 1, 1);
+        $this->assertContains($muellerState, $before);
+
+        $indexed = $stateSetIndex->index(['Mueler']);
+        $muelerState = $indexed['Mueler'];
+
+        $after = $stateSetIndex->findMatchingStates('Mueler', 1, 1);
+        $this->assertContains($muellerState, $after);
+        $this->assertContains($muelerState, $after);
+        $this->assertGreaterThan(\count($before), \count($after));
+    }
+
+    public function testMatchingStatesCacheIsClearedAfterRemoval(): void
+    {
+        $stateSetIndex = new StateSetIndex(new Config(14, 4), new Utf8Alphabet(), new InMemoryStateSet(), new InMemoryDataStore());
+        $indexed = $stateSetIndex->index(['Mueller', 'Mueler']);
+        $muellerState = $indexed['Mueller'];
+        $muelerState = $indexed['Mueler'];
+
+        $before = $stateSetIndex->findMatchingStates('Mueler', 1, 1);
+        $this->assertContains($muellerState, $before);
+        $this->assertContains($muelerState, $before);
+
+        $stateSetIndex->removeFromIndex(['Mueller']);
+
+        $after = $stateSetIndex->findMatchingStates('Mueler', 1, 1);
+        $this->assertNotContains($muellerState, $after);
+        $this->assertContains($muelerState, $after);
+        $this->assertLessThan(\count($before), \count($after));
+    }
+
     public function testRemoveFromFullIndex(): void
     {
         $stateSetIndex = new StateSetIndex(new Config(5, 4), new Utf8Alphabet(), new InMemoryStateSet(), new InMemoryDataStore());
