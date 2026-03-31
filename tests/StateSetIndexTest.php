@@ -93,7 +93,7 @@ class StateSetIndexTest extends TestCase
         $stateSetIndex = new StateSetIndex(new Config(14, 4), new Utf8Alphabet(), new InMemoryStateSet(), new InMemoryDataStore());
         $stateSetIndex->index(['assassin']);
 
-        $this->assertSame([844, 3380, 13522, 54091], $stateSetIndex->findMatchingStates('assasin', 2, 2));
+        $this->assertSame([844, 3380, 13522, 54091], $this->findSortedMatchingStates($stateSetIndex, 'assasin', 2, 2));
         $this->assertSame([
             54091 => ['assassin'],
         ], $stateSetIndex->findAcceptedStrings('assasin', 2, 2));
@@ -192,7 +192,7 @@ class StateSetIndexTest extends TestCase
 
         $stateSetIndex->index(['Mueller', 'Müller', 'Multere', 'Muentner', 'Muster', 'Mustermann']);
 
-        $this->assertSame([104, 419, 467, 1677, 1811, 1869], $stateSetIndex->findMatchingStates('Mustre', 2, 2));
+        $this->assertSame([104, 419, 467, 1677, 1811, 1869], $this->findSortedMatchingStates($stateSetIndex, 'Mustre', 2, 2));
         $this->assertSame([
             1811 => ['Mueller'],
             1869 => ['Müller', 'Multere'],
@@ -228,7 +228,7 @@ class StateSetIndexTest extends TestCase
         $stateSetIndex->index(['Mustermann']);
 
         $this->assertSame([2, 10, 44, 177, 710, 2843], $stateSetIndex->getStateSet()->all());
-        $this->assertSame([2843], $stateSetIndex->findMatchingStates('Mutermann', 1, 1));
+        $this->assertSame([2843], $this->findSortedMatchingStates($stateSetIndex, 'Mutermann', 1, 1));
         $this->assertSame([
             2843 => ['Mustermann'],
         ], $stateSetIndex->findAcceptedStrings('Mutermann', 1, 1));
@@ -240,7 +240,7 @@ class StateSetIndexTest extends TestCase
         $stateSetIndex = new StateSetIndex(new Config(6, 4), new Utf8Alphabet(), new InMemoryStateSet(), new InMemoryDataStore());
         $stateSetIndex->index(['Mueller', 'Müller', 'Muentner', 'Muentre', 'Muster', 'Mustermann']);
 
-        $this->assertSame([177, 710, 2710, 2743, 2843], $stateSetIndex->findMatchingStates('Mustre', 2, 2));
+        $this->assertSame([177, 710, 2710, 2743, 2843], $this->findSortedMatchingStates($stateSetIndex, 'Mustre', 2, 2));
         $this->assertSame([
             2710 => ['Mueller'],
             2743 => ['Muentner', 'Muentre'],
@@ -274,5 +274,15 @@ class StateSetIndexTest extends TestCase
 
         $this->assertSame([], $stateSetIndex->find($search, $editDistance));
         $this->assertSame([], $stateSetIndex->findAcceptedStrings($search, $editDistance, 1));
+    }
+
+    /**
+     * @return array<int>
+     */
+    private function findSortedMatchingStates(StateSetIndex $stateSetIndex, string $string, int $editDistance, int $transpositionDistance): array
+    {
+        $states = $stateSetIndex->findMatchingStates($string, $editDistance, $transpositionDistance);
+        sort($states);
+        return $states;
     }
 }

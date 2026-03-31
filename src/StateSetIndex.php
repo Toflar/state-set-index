@@ -4,7 +4,6 @@ namespace Toflar\StateSetIndex;
 
 use Toflar\StateSetIndex\Alphabet\AlphabetInterface;
 use Toflar\StateSetIndex\DataStore\DataStoreInterface;
-use Toflar\StateSetIndex\StateSet\CostAnnotatedStateSet;
 use Toflar\StateSetIndex\StateSet\StateSetInterface;
 
 class StateSetIndex
@@ -15,7 +14,7 @@ class StateSetIndex
     private array $indexCache = [];
 
     /**
-     * @var array<string, int>
+     * @var array<string, array<int>>
      */
     private array $matchingStatesCache = [];
 
@@ -96,50 +95,60 @@ class StateSetIndex
         $lastSubstitutions = [];
         $lastMappedChar = null;
 
-        $this->loopOverEveryCharacter($indexLength, $alphabetSize, $string, function (int $mappedChar) use (&$states, &$lastSubstitutions, &$lastMappedChar, $editDistance, $transpositionCost, $alphabetSize, $cutOffLowerBound) {
-            $statesStar = new CostAnnotatedStateSet(); // This is S∗ in the paper
+        $this->loopOverEveryCharacter($indexLength, $alphabetSize, $string, function (int $mappedChar) use (&$states, &$lastSubstitutions, &$lastMappedChar, $editDistance, $transpositionCost, $alphabetSize, $cutOffLowerBound): void {
+            $statesStar = []; // This is S∗ in the paper
             $substitutionStates = [];
 
-            foreach ($states->all() as $state => $cost) {
-                $statesStarC = new CostAnnotatedStateSet(); // This is S∗c in the paper
+            foreach ($states as $state => $cost) {
+                $statesStarC = [];  // This is S∗c in the paper
 
                 // Match for characters that got cut off during indexing because they appear past the index length
                 if ($state > $cutOffLowerBound) {
-                    $statesStarC->add($state, $cost);
+                    $statesStarC[$state] = $cost;
                 }
 
                 // Deletion
                 if ($cost + 1 <= $editDistance) {
-                    $statesStarC->add($state, $cost + 1);
+                    $newCost = $cost + 1;
+                    if (!isset($statesStarC[$state]) || $newCost < $statesStarC[$state]) {
+                        $statesStarC[$state] = $newCost;
+                    }
                 }
 
                 // Match & Substitution
-                for ($i = 1; $i <= $alphabetSize; $i++) {
-                    $newState = (int) ($state * $alphabetSize + $i);
+                $statePrefix = $state * $alphabetSize;
+                for ($i = 1; $i <= $alphabetSize; ++$i) {
+                    $newState = $statePrefix + $i;
+
+                    if (!$this->stateSet->has($newState)) {
+                        continue;
+                    }
 
                     if ($i === $mappedChar) {
-                        if ($this->stateSet->has($newState)) {
-                            // Match
-                            $statesStarC->add($newState, $cost);
+                        if (!isset($statesStarC[$newState]) || $cost < $statesStarC[$newState]) {
+                            $statesStarC[$newState] = $cost;
                         }
-                    } elseif ($cost + 1 <= $editDistance) {
-                        if ($this->stateSet->has($newState)) {
-                            // Substitution
-                            $statesStarC->add($newState, $cost + 1);
-                            $substitutionStates[$i] ??= new CostAnnotatedStateSet();
-                            $substitutionStates[$i]->add($newState, $cost + 1);
+                        continue;
+                    }
+
+                    if ($cost + 1 <= $editDistance) {
+                        $newCost = $cost + 1;
+                        if (!isset($statesStarC[$newState]) || $newCost < $statesStarC[$newState]) {
+                            $statesStarC[$newState] = $newCost;
+                        }
+                        if (!isset($substitutionStates[$i][$newState]) || $newCost < $substitutionStates[$i][$newState]) {
+                            $substitutionStates[$i][$newState] = $newCost;
                         }
                     }
                 }
 
                 // Insertion
-                foreach ($statesStarC->all() as $newState => $newCost) {
-                    $statesStar = $statesStar->mergeWith($this->getReachableStates(
-                        $alphabetSize,
-                        $newState,
-                        $editDistance,
-                        $newCost
-                    ));
+                foreach ($statesStarC as $newState => $newCost) {
+                    foreach ($this->getReachableStates($alphabetSize, $newState, $editDistance, $newCost) as $reachableState => $reachableCost) {
+                        if (!isset($statesStar[$reachableState]) || $reachableCost < $statesStar[$reachableState]) {
+                            $statesStar[$reachableState] = $reachableCost;
+                        }
+                    }
                 }
             }
 
@@ -147,16 +156,16 @@ class StateSetIndex
             // Takes all substitution states from the previous step that matched
             // the current char and adds a followup substitution state using the
             // previous char and assigns a combined cost of $transpositionCost.
-            foreach (($lastSubstitutions[$mappedChar] ?? null)?->all() ?? [] as $state => $cost) {
-                $newState = (int) ($state * $alphabetSize + $lastMappedChar);
+            foreach ($lastSubstitutions[$mappedChar] ?? [] as $state => $cost) {
+                $newState = $state * $alphabetSize + $lastMappedChar;
+                $newCost = $cost - 1 + $transpositionCost;
 
-                if ($this->stateSet->has($newState)) {
-                    $statesStar = $statesStar->mergeWith($this->getReachableStates(
-                        $alphabetSize,
-                        $newState,
-                        $editDistance,
-                        $cost - 1 + $transpositionCost,
-                    ));
+                if ($newCost <= $editDistance && $this->stateSet->has($newState)) {
+                    foreach ($this->getReachableStates($alphabetSize, $newState, $editDistance, $newCost) as $reachableState => $reachableCost) {
+                        if (!isset($statesStar[$reachableState]) || $reachableCost < $statesStar[$reachableState]) {
+                            $statesStar[$reachableState] = $reachableCost;
+                        }
+                    }
                 }
             }
 
@@ -165,7 +174,7 @@ class StateSetIndex
             $lastSubstitutions = $substitutionStates;
         });
 
-        return $this->matchingStatesCache[$cacheKey] = $states->states();
+        return $this->matchingStatesCache[$cacheKey] = array_keys($states);
     }
 
     public function getAlphabet(): AlphabetInterface
@@ -247,25 +256,31 @@ class StateSetIndex
         }
     }
 
-    private function getReachableStates(int $alphabetSize, int $startState, int $editDistance, int $currentDistance = 0): CostAnnotatedStateSet
+    /**
+     * @return array<int, int>
+     */
+    private function getReachableStates(int $alphabetSize, int $startState, int $editDistance, int $currentDistance = 0): array
     {
-        $reachable = new CostAnnotatedStateSet();
-
         if ($currentDistance > $editDistance) {
-            return $reachable;
+            return [];
         }
 
         // A state is always able to reach itself
-        $reachable->add($startState, $currentDistance);
+        $reachable = [$startState => $currentDistance];
 
         if ($currentDistance >= $editDistance) {
             return $reachable;
         }
 
-        for ($c = 1; $c <= $alphabetSize; $c++) {
-            $state = $startState * $alphabetSize + $c;
+        $statePrefix = $startState * $alphabetSize;
+        for ($c = 1; $c <= $alphabetSize; ++$c) {
+            $state = $statePrefix + $c;
             if ($this->stateSet->has($state)) {
-                $reachable = $reachable->mergeWith($this->getReachableStates($alphabetSize, $state, $editDistance, $currentDistance + 1));
+                foreach ($this->getReachableStates($alphabetSize, $state, $editDistance, $currentDistance + 1) as $reachableState => $reachableCost) {
+                    if (!isset($reachable[$reachableState]) || $reachableCost < $reachable[$reachableState]) {
+                        $reachable[$reachableState] = $reachableCost;
+                    }
+                }
             }
         }
 
