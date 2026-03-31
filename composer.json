@@ -24,10 +24,13 @@
         "ext-mbstring": "*"
     },
     "require-dev": {
-        "symplify/easy-coding-standard": "^11.3",
-        "phpunit/phpunit": "^10.2"
+        "fakerphp/faker": "^1.24",
+        "phpbench/phpbench": "^1.4",
+        "phpunit/phpunit": "^10.2",
+        "symplify/easy-coding-standard": "^11.3"
     },
     "scripts": {
+        "bench": "@php vendor/bin/phpbench run tests/Benchmark --report=aggregate",
         "cs-fix": "@php vendor/bin/ecs --fix"
     }
 }
