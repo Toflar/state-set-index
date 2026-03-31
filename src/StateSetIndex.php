@@ -266,7 +266,9 @@ class StateSetIndex
         }
 
         // A state is always able to reach itself
-        $reachable = [$startState => $currentDistance];
+        $reachable = [
+            $startState => $currentDistance,
+        ];
 
         if ($currentDistance >= $editDistance) {
             return $reachable;
