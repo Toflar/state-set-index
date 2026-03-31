@@ -4,34 +4,44 @@ namespace Toflar\StateSetIndex\Test;
 
 use PHPUnit\Framework\TestCase;
 use Toflar\StateSetIndex\DamerauLevenshtein;
-use Toflar\StateSetIndex\Levenshtein;
 
 class DamerauLevenshteinTest extends TestCase
 {
-    /**
-     * @dataProvider distanceProvider
-     */
-    public function testDistance(int $expected, string $a, string $b, int $maxDistance = PHP_INT_MAX): void
+    public static function costsProvider(): \Generator
     {
-        $this->assertSame($expected, DamerauLevenshtein::distance($a, $b, $maxDistance));
-        $this->assertSame($expected, DamerauLevenshtein::distance($b, $a, $maxDistance));
-        $this->assertSame($expected, DamerauLevenshtein::distance($a, $b, $expected));
-        $this->assertSame($expected, DamerauLevenshtein::distance($b, $a, $expected));
-        $this->assertSame($expected, DamerauLevenshtein::distance($a, $b, min($maxDistance, $expected + 1)));
-        $this->assertSame($expected, DamerauLevenshtein::distance($b, $a, min($maxDistance, $expected + 1)));
-
-        if ($expected > 0) {
-            $this->assertSame($expected - 1, DamerauLevenshtein::distance($a, $b, $expected - 1));
-            $this->assertSame($expected - 1, DamerauLevenshtein::distance($b, $a, $expected - 1));
-        }
-
-        $this->assertSame($expected * 2, DamerauLevenshtein::distance($a, $b, $maxDistance === PHP_INT_MAX ? PHP_INT_MAX : $maxDistance * 2, 2, 2, 2, 2));
-        $this->assertSame($expected * 2, DamerauLevenshtein::distance($b, $a, $maxDistance === PHP_INT_MAX ? PHP_INT_MAX : $maxDistance * 2, 2, 2, 2, 2));
-        $this->assertSame($expected * 4, DamerauLevenshtein::distance($a, $b, $maxDistance === PHP_INT_MAX ? PHP_INT_MAX : $maxDistance * 4, 4, 4, 4, 4));
-        $this->assertSame($expected * 4, DamerauLevenshtein::distance($b, $a, $maxDistance === PHP_INT_MAX ? PHP_INT_MAX : $maxDistance * 4, 4, 4, 4, 4));
+        yield [7, 'abc', 'bcd', 3, 8, 4];
+        yield [3, 'abc', 'bcd', 2, 1, 3];
+        yield [4, 'abcd', 'acbd', 1, 2, 3, 4];
+        yield [4, 'abcd', 'acbd', 2, 2, 3, 5];
+        yield [4, 'abcd', 'acbd', 1, 3, 3, 5];
+        yield [4, 'abcd', 'acbd', 2, 3, 3, 4];
+        yield [5, 'abcd', 'acbd', 2, 3, 3, 5];
+        yield [5, 'abcd', 'acbd', 2, 3, 3, 6];
+        yield [6, 'abcd', 'acbd', 2, 3, 4, 6];
+        yield [1, 'abcd', 'abcde', 1, 2, 2, 2];
+        yield [1, 'abcd', 'abcde', 1, 99, 99, 99];
+        yield [1, 'abcd', 'aXcd', 2, 1, 2, 2];
+        yield [1, 'abcd', 'aXcd', 99, 1, 99, 99];
+        yield [1, 'abcd', 'abc', 2, 2, 1, 2];
+        yield [1, 'abcd', 'abc', 99, 99, 1, 99];
+        yield [1, 'abcd', 'acbd', 2, 2, 2, 1];
+        yield [1, 'abcd', 'acbd', 99, 99, 99, 1];
+        yield [2, 'abcd', 'abcde', 2, 3, 3, 3];
+        yield [2, 'abcd', 'abcde', 2, 99, 99, 99];
+        yield [2, 'abcd', 'aXcd', 3, 2, 3, 3];
+        yield [2, 'abcd', 'aXcd', 99, 2, 99, 99];
+        yield [2, 'abcd', 'abc', 3, 3, 2, 3];
+        yield [2, 'abcd', 'abc', 99, 99, 2, 99];
+        yield [2, 'abcd', 'acbd', 3, 3, 3, 2];
+        yield [2, 'abcd', 'acbd', 99, 99, 99, 2];
+        yield [13, 'aaaa', 'bbbbb', 1, 99, 2, 99];
+        yield [14, 'aaaaa', 'bbbb', 1, 99, 2, 99];
+        yield [14, 'aaaa', 'bbbbb', 2, 99, 1, 99];
+        yield [13, 'aaaaa', 'bbbb', 2, 99, 1, 99];
     }
 
-    public static function distanceProvider(): \Generator {
+    public static function distanceProvider(): \Generator
+    {
         yield [0, 'abc', 'abc'];
 
         yield [1, 'abcd', 'abcx'];
@@ -104,14 +114,14 @@ class DamerauLevenshteinTest extends TestCase
         yield [2, 'xxxxxxxxxx', 'xxxxxxxx__', 3];
         yield [3, 'xxxxxxxxxx', 'xxxxxxx___', 4];
 
-        yield [1, str_repeat('x', 1024), str_repeat('x', 1023).'_', 2];
-        yield [2, str_repeat('x', 1024), str_repeat('x', 1022).'__', 3];
-        yield [3, str_repeat('x', 1024), str_repeat('x', 1021).'___', 4];
+        yield [1, str_repeat('x', 1024), str_repeat('x', 1023) . '_', 2];
+        yield [2, str_repeat('x', 1024), str_repeat('x', 1022) . '__', 3];
+        yield [3, str_repeat('x', 1024), str_repeat('x', 1021) . '___', 4];
 
-        yield [1, str_repeat('x', 1024), '_'.str_repeat('x', 1023), 2];
-        yield [2, str_repeat('x', 1024), '_'.str_repeat('x', 1022).'_', 3];
-        yield [3, str_repeat('x', 1024), '_'.str_repeat('x', 1021).'__', 4];
-        yield [4, str_repeat('x', 1024), '_'.str_repeat('x', 1020).'___', 5];
+        yield [1, str_repeat('x', 1024), '_' . str_repeat('x', 1023), 2];
+        yield [2, str_repeat('x', 1024), '_' . str_repeat('x', 1022) . '_', 3];
+        yield [3, str_repeat('x', 1024), '_' . str_repeat('x', 1021) . '__', 4];
+        yield [4, str_repeat('x', 1024), '_' . str_repeat('x', 1020) . '___', 5];
 
         yield [1, '', 'a'];
         yield [1, 'a', ''];
@@ -134,7 +144,6 @@ class DamerauLevenshteinTest extends TestCase
         yield [1, "\xF0\x9F\x92\xA9suffix", "\xF0\x9F\x93\xA9suffix"];
         yield [1, "prefix\xF0\x9F\x92\xA9suffix", "prefix\xF0\x9F\x92\xAFsuffix"];
         yield [1, "prefix\xF0\x9F\x92\xA9suffix", "prefix\xF0\x9F\x93\xA9suffix"];
-
     }
 
     /**
@@ -155,36 +164,26 @@ class DamerauLevenshteinTest extends TestCase
         }
     }
 
-    public static function costsProvider(): \Generator
+    /**
+     * @dataProvider distanceProvider
+     */
+    public function testDistance(int $expected, string $a, string $b, int $maxDistance = PHP_INT_MAX): void
     {
-        yield [7, 'abc', 'bcd', 3, 8, 4];
-        yield [3, 'abc', 'bcd', 2, 1, 3];
-        yield [4, 'abcd', 'acbd', 1, 2, 3, 4];
-        yield [4, 'abcd', 'acbd', 2, 2, 3, 5];
-        yield [4, 'abcd', 'acbd', 1, 3, 3, 5];
-        yield [4, 'abcd', 'acbd', 2, 3, 3, 4];
-        yield [5, 'abcd', 'acbd', 2, 3, 3, 5];
-        yield [5, 'abcd', 'acbd', 2, 3, 3, 6];
-        yield [6, 'abcd', 'acbd', 2, 3, 4, 6];
-        yield [1, 'abcd', 'abcde', 1, 2, 2, 2];
-        yield [1, 'abcd', 'abcde', 1, 99, 99, 99];
-        yield [1, 'abcd', 'aXcd', 2, 1, 2, 2];
-        yield [1, 'abcd', 'aXcd', 99, 1, 99, 99];
-        yield [1, 'abcd', 'abc', 2, 2, 1, 2];
-        yield [1, 'abcd', 'abc', 99, 99, 1, 99];
-        yield [1, 'abcd', 'acbd', 2, 2, 2, 1];
-        yield [1, 'abcd', 'acbd', 99, 99, 99, 1];
-        yield [2, 'abcd', 'abcde', 2, 3, 3, 3];
-        yield [2, 'abcd', 'abcde', 2, 99, 99, 99];
-        yield [2, 'abcd', 'aXcd', 3, 2, 3, 3];
-        yield [2, 'abcd', 'aXcd', 99, 2, 99, 99];
-        yield [2, 'abcd', 'abc', 3, 3, 2, 3];
-        yield [2, 'abcd', 'abc', 99, 99, 2, 99];
-        yield [2, 'abcd', 'acbd', 3, 3, 3, 2];
-        yield [2, 'abcd', 'acbd', 99, 99, 99, 2];
-        yield [13, 'aaaa', 'bbbbb', 1, 99, 2, 99];
-        yield [14, 'aaaaa', 'bbbb', 1, 99, 2, 99];
-        yield [14, 'aaaa', 'bbbbb', 2, 99, 1, 99];
-        yield [13, 'aaaaa', 'bbbb', 2, 99, 1, 99];
+        $this->assertSame($expected, DamerauLevenshtein::distance($a, $b, $maxDistance));
+        $this->assertSame($expected, DamerauLevenshtein::distance($b, $a, $maxDistance));
+        $this->assertSame($expected, DamerauLevenshtein::distance($a, $b, $expected));
+        $this->assertSame($expected, DamerauLevenshtein::distance($b, $a, $expected));
+        $this->assertSame($expected, DamerauLevenshtein::distance($a, $b, min($maxDistance, $expected + 1)));
+        $this->assertSame($expected, DamerauLevenshtein::distance($b, $a, min($maxDistance, $expected + 1)));
+
+        if ($expected > 0) {
+            $this->assertSame($expected - 1, DamerauLevenshtein::distance($a, $b, $expected - 1));
+            $this->assertSame($expected - 1, DamerauLevenshtein::distance($b, $a, $expected - 1));
+        }
+
+        $this->assertSame($expected * 2, DamerauLevenshtein::distance($a, $b, $maxDistance === PHP_INT_MAX ? PHP_INT_MAX : $maxDistance * 2, 2, 2, 2, 2));
+        $this->assertSame($expected * 2, DamerauLevenshtein::distance($b, $a, $maxDistance === PHP_INT_MAX ? PHP_INT_MAX : $maxDistance * 2, 2, 2, 2, 2));
+        $this->assertSame($expected * 4, DamerauLevenshtein::distance($a, $b, $maxDistance === PHP_INT_MAX ? PHP_INT_MAX : $maxDistance * 4, 4, 4, 4, 4));
+        $this->assertSame($expected * 4, DamerauLevenshtein::distance($b, $a, $maxDistance === PHP_INT_MAX ? PHP_INT_MAX : $maxDistance * 4, 4, 4, 4, 4));
     }
 }
