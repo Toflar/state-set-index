@@ -190,6 +190,8 @@ class StateSetIndex
      */
     public function index(array $strings): array
     {
+        $this->matchingStatesCache = [];
+
         $assigned = [];
         $indexLength = $this->config->getIndexLength();
         $alphabetSize = $this->config->getAlphabetSize();
@@ -221,6 +223,8 @@ class StateSetIndex
      */
     public function removeFromIndex(array $strings): void
     {
+        $this->matchingStatesCache = [];
+
         $indexLength = $this->config->getIndexLength();
         $alphabetSize = $this->config->getAlphabetSize();
 
