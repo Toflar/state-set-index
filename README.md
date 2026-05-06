@@ -8,6 +8,10 @@ Computer Science, Berlin, Germany.
 The algorithm allows to efficiently search through huge datasets with typos (Levenshtein distance) while keeping the
 index size small. [Download the paper and read all the details here][Paper].
 
+While this implementation is based on that paper, it is not just a direct integration. The library extends
+the approach with additional capabilities such as transposition support and practical helper APIs like
+matching-state snapshots that can be used for caching and incremental lookups.
+
 ## Installation
 
 Use Composer:
@@ -69,5 +73,25 @@ results which you can use to e.g. search your own database for states etc.:
 * `$stateSetIndex->findAcceptedStrings('Mustre', 2)` returns the matching states and the respective accepted strings 
   (unfiltered for false-positives!).
 * `$stateSetIndex->find('Mustre', 2)` returns the real matches, filtered for false-positives.
+
+### Snapshots
+
+If your search input grows incrementally (for example while a user types), you can keep and continue
+matching-state snapshots instead of recalculating from scratch every time.
+
+```php
+$snapshot = $stateSetIndex->createMatchingStatesSnapshot('Muel', 1, 1);
+
+// Later, continue from the existing snapshot as long as the new input still starts with "Muel".
+$continued = $stateSetIndex->continueMatchingStatesSnapshot('Mueler', $snapshot);
+
+$states = $continued->matchingStates();
+```
+
+If the new input no longer matches the snapshot prefix, continuation falls back to a fresh calculation automatically.
+
+Snapshots are also useful as a cache for repeated or incremental lookups. If you cache them, make sure to
+invalidate that cache whenever the indexed state set changes (for example after adding or removing entries),
+otherwise you may continue with stale matching states.
 
 [Paper]: https://hpi.de/fileadmin/user_upload/fachgebiete/naumann/publications/PDFs/2012_fenz_efficient.pdf
