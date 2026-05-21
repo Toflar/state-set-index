@@ -7,6 +7,7 @@ use Toflar\StateSetIndex\Alphabet\InMemoryAlphabet;
 use Toflar\StateSetIndex\Alphabet\Utf8Alphabet;
 use Toflar\StateSetIndex\Config;
 use Toflar\StateSetIndex\DataStore\InMemoryDataStore;
+use Toflar\StateSetIndex\MatchingStatesSnapshot;
 use Toflar\StateSetIndex\StateSet\InMemoryStateSet;
 use Toflar\StateSetIndex\StateSetIndex;
 
@@ -98,6 +99,19 @@ class StateSetIndexTest extends TestCase
             54091 => ['assassin'],
         ], $stateSetIndex->findAcceptedStrings('assasin', 2, 2));
         $this->assertSame(['assassin'], $stateSetIndex->find('assasin', 2, 2));
+    }
+
+    public function testCanContinueFromSnapshot(): void
+    {
+        $stateSetIndex = new StateSetIndex(new Config(14, 6), new Utf8Alphabet(), new InMemoryStateSet(), new InMemoryDataStore());
+        $stateSetIndex->index(['Mueller', 'Muentner', 'Muster']);
+
+        $snapshot = $stateSetIndex->createMatchingStatesSnapshot('Muel', 1, 1);
+
+        $this->assertSame(
+            $this->findSortedMatchingStates($stateSetIndex, 'Mueler', 1, 1),
+            $this->findSortedMatchingStatesFromSnapshot($stateSetIndex, 'Mueler', $snapshot),
+        );
     }
 
     public function testMatchingStatesCacheIsClearedAfterIndexing(): void
@@ -319,6 +333,16 @@ class StateSetIndexTest extends TestCase
     private function findSortedMatchingStates(StateSetIndex $stateSetIndex, string $string, int $editDistance, int $transpositionDistance): array
     {
         $states = $stateSetIndex->findMatchingStates($string, $editDistance, $transpositionDistance);
+        sort($states);
+        return $states;
+    }
+
+    /**
+     * @return array<int>
+     */
+    private function findSortedMatchingStatesFromSnapshot(StateSetIndex $stateSetIndex, string $string, MatchingStatesSnapshot $snapshot): array
+    {
+        $states = $stateSetIndex->continueMatchingStatesSnapshot($string, $snapshot)->matchingStates();
         sort($states);
         return $states;
     }

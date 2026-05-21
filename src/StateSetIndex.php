@@ -26,6 +26,79 @@ class StateSetIndex
     ) {
     }
 
+    public function continueMatchingStatesSnapshot(string $string, MatchingStatesSnapshot $snapshot): MatchingStatesSnapshot
+    {
+        if (!$snapshot->matchesPrefix($string)) {
+            return $this->createMatchingStatesSnapshot($string, $snapshot->editDistance, $snapshot->transpositionCost);
+        }
+
+        $indexLength = $this->config->getIndexLength();
+        if (mb_strlen($snapshot->processedPrefix) >= $indexLength) {
+            return $snapshot;
+        }
+
+        $suffix = mb_substr($string, mb_strlen($snapshot->processedPrefix));
+        if ($suffix === '') {
+            return $snapshot;
+        }
+
+        $states = $snapshot->states;
+        $lastSubstitutions = $snapshot->lastSubstitutions;
+        $lastMappedChar = $snapshot->lastMappedChar;
+        $this->advanceMatchingStates(
+            $indexLength,
+            $this->config->getAlphabetSize(),
+            $suffix,
+            $states,
+            $lastSubstitutions,
+            $lastMappedChar,
+            $snapshot->editDistance,
+            $snapshot->transpositionCost,
+            $snapshot->cutOffLowerBound,
+        );
+
+        return new MatchingStatesSnapshot(
+            mb_substr($string, 0, $indexLength),
+            $snapshot->editDistance,
+            $snapshot->transpositionCost,
+            $snapshot->cutOffLowerBound,
+            $states,
+            $lastSubstitutions,
+            $lastMappedChar,
+        );
+    }
+
+    public function createMatchingStatesSnapshot(string $string, int $editDistance, int $transpositionCost): MatchingStatesSnapshot
+    {
+        $indexLength = $this->config->getIndexLength();
+        $alphabetSize = $this->config->getAlphabetSize();
+
+        $cutOffLowerBound = PHP_INT_MAX;
+        if (mb_strlen($string) > $indexLength - $editDistance) {
+            $cutOffLowerBound = 0;
+            for ($i = 1; $i < $indexLength; ++$i) {
+                $cutOffLowerBound = $cutOffLowerBound * $alphabetSize + $alphabetSize;
+            }
+        }
+
+        // Initial states
+        $states = $this->getReachableStates($alphabetSize, 0, $editDistance);
+        $lastSubstitutions = [];
+        $lastMappedChar = null;
+
+        $this->advanceMatchingStates($indexLength, $alphabetSize, $string, $states, $lastSubstitutions, $lastMappedChar, $editDistance, $transpositionCost, $cutOffLowerBound);
+
+        return new MatchingStatesSnapshot(
+            mb_substr($string, 0, $indexLength),
+            $editDistance,
+            $transpositionCost,
+            $cutOffLowerBound,
+            $states,
+            $lastSubstitutions,
+            $lastMappedChar,
+        );
+    }
+
     /**
      * Returns the matching strings.
      *
@@ -94,85 +167,7 @@ class StateSetIndex
         $states = $this->getReachableStates($alphabetSize, 0, $editDistance);
         $lastSubstitutions = [];
         $lastMappedChar = null;
-
-        $this->loopOverEveryCharacter($indexLength, $alphabetSize, $string, function (int $mappedChar) use (&$states, &$lastSubstitutions, &$lastMappedChar, $editDistance, $transpositionCost, $alphabetSize, $cutOffLowerBound): void {
-            $statesStar = []; // This is S∗ in the paper
-            $substitutionStates = [];
-
-            foreach ($states as $state => $cost) {
-                $statesStarC = [];  // This is S∗c in the paper
-
-                // Match for characters that got cut off during indexing because they appear past the index length
-                if ($state > $cutOffLowerBound) {
-                    $statesStarC[$state] = $cost;
-                }
-
-                // Deletion
-                if ($cost + 1 <= $editDistance) {
-                    $newCost = $cost + 1;
-                    if (!isset($statesStarC[$state]) || $newCost < $statesStarC[$state]) {
-                        $statesStarC[$state] = $newCost;
-                    }
-                }
-
-                // Match & Substitution
-                $statePrefix = $state * $alphabetSize;
-                for ($i = 1; $i <= $alphabetSize; ++$i) {
-                    $newState = $statePrefix + $i;
-
-                    if (!$this->stateSet->has($newState)) {
-                        continue;
-                    }
-
-                    if ($i === $mappedChar) {
-                        if (!isset($statesStarC[$newState]) || $cost < $statesStarC[$newState]) {
-                            $statesStarC[$newState] = $cost;
-                        }
-                        continue;
-                    }
-
-                    if ($cost + 1 <= $editDistance) {
-                        $newCost = $cost + 1;
-                        if (!isset($statesStarC[$newState]) || $newCost < $statesStarC[$newState]) {
-                            $statesStarC[$newState] = $newCost;
-                        }
-                        if (!isset($substitutionStates[$i][$newState]) || $newCost < $substitutionStates[$i][$newState]) {
-                            $substitutionStates[$i][$newState] = $newCost;
-                        }
-                    }
-                }
-
-                // Insertion
-                foreach ($statesStarC as $newState => $newCost) {
-                    foreach ($this->getReachableStates($alphabetSize, $newState, $editDistance, $newCost) as $reachableState => $reachableCost) {
-                        if (!isset($statesStar[$reachableState]) || $reachableCost < $statesStar[$reachableState]) {
-                            $statesStar[$reachableState] = $reachableCost;
-                        }
-                    }
-                }
-            }
-
-            // Transposition
-            // Takes all substitution states from the previous step that matched
-            // the current char and adds a followup substitution state using the
-            // previous char and assigns a combined cost of $transpositionCost.
-            foreach ($lastSubstitutions[$mappedChar] ?? [] as $state => $cost) {
-                $newState = $state * $alphabetSize + $lastMappedChar;
-                $newCost = $cost - 1 + $transpositionCost;
-
-                if ($newCost <= $editDistance && $this->stateSet->has($newState)) {
-                    foreach ($this->getReachableStates($alphabetSize, $newState, $editDistance, $newCost) as $reachableState => $reachableCost) {
-                        if (!isset($statesStar[$reachableState]) || $reachableCost < $statesStar[$reachableState]) {
-                            $statesStar[$reachableState] = $reachableCost;
-                        }
-                    }
-                }
-            }
-
-            $states = $statesStar;
-            $lastMappedChar = $mappedChar;
-            $lastSubstitutions = $substitutionStates;
-        });
+        $this->advanceMatchingStates($indexLength, $alphabetSize, $string, $states, $lastSubstitutions, $lastMappedChar, $editDistance, $transpositionCost, $cutOffLowerBound);
 
         return $this->matchingStatesCache[$cacheKey] = array_keys($states);
     }
@@ -258,6 +253,101 @@ class StateSetIndex
                 $this->stateSet->remove($state);
             }
         }
+    }
+
+    /**
+     * @param array<int, int> $states
+     * @param array<int, array<int, int>> $lastSubstitutions
+     */
+    private function advanceMatchingStates(
+        int $indexLength,
+        int $alphabetSize,
+        string $string,
+        array &$states,
+        array &$lastSubstitutions,
+        ?int &$lastMappedChar,
+        int $editDistance,
+        int $transpositionCost,
+        int $cutOffLowerBound,
+    ): void {
+        $this->loopOverEveryCharacter($indexLength, $alphabetSize, $string, function (int $mappedChar) use (&$states, &$lastSubstitutions, &$lastMappedChar, $editDistance, $transpositionCost, $alphabetSize, $cutOffLowerBound): void {
+            $statesStar = []; // This is S∗ in the paper
+            $substitutionStates = [];
+
+            foreach ($states as $state => $cost) {
+                $statesStarC = [];  // This is S∗c in the paper
+
+                // Match for characters that got cut off during indexing because they appear past the index length
+                if ($state > $cutOffLowerBound) {
+                    $statesStarC[$state] = $cost;
+                }
+
+                // Deletion
+                if ($cost + 1 <= $editDistance) {
+                    $newCost = $cost + 1;
+                    if (!isset($statesStarC[$state]) || $newCost < $statesStarC[$state]) {
+                        $statesStarC[$state] = $newCost;
+                    }
+                }
+
+                // Match & Substitution
+                $statePrefix = $state * $alphabetSize;
+                for ($i = 1; $i <= $alphabetSize; ++$i) {
+                    $newState = $statePrefix + $i;
+
+                    if (!$this->stateSet->has($newState)) {
+                        continue;
+                    }
+
+                    if ($i === $mappedChar) {
+                        if (!isset($statesStarC[$newState]) || $cost < $statesStarC[$newState]) {
+                            $statesStarC[$newState] = $cost;
+                        }
+                        continue;
+                    }
+
+                    if ($cost + 1 <= $editDistance) {
+                        $newCost = $cost + 1;
+                        if (!isset($statesStarC[$newState]) || $newCost < $statesStarC[$newState]) {
+                            $statesStarC[$newState] = $newCost;
+                        }
+                        if (!isset($substitutionStates[$i][$newState]) || $newCost < $substitutionStates[$i][$newState]) {
+                            $substitutionStates[$i][$newState] = $newCost;
+                        }
+                    }
+                }
+
+                // Insertion
+                foreach ($statesStarC as $newState => $newCost) {
+                    foreach ($this->getReachableStates($alphabetSize, $newState, $editDistance, $newCost) as $reachableState => $reachableCost) {
+                        if (!isset($statesStar[$reachableState]) || $reachableCost < $statesStar[$reachableState]) {
+                            $statesStar[$reachableState] = $reachableCost;
+                        }
+                    }
+                }
+            }
+
+            // Transposition
+            // Takes all substitution states from the previous step that matched
+            // the current char and adds a followup substitution state using the
+            // previous char and assigns a combined cost of $transpositionCost.
+            foreach ($lastSubstitutions[$mappedChar] ?? [] as $state => $cost) {
+                $newState = $state * $alphabetSize + $lastMappedChar;
+                $newCost = $cost - 1 + $transpositionCost;
+
+                if ($newCost <= $editDistance && $this->stateSet->has($newState)) {
+                    foreach ($this->getReachableStates($alphabetSize, $newState, $editDistance, $newCost) as $reachableState => $reachableCost) {
+                        if (!isset($statesStar[$reachableState]) || $reachableCost < $statesStar[$reachableState]) {
+                            $statesStar[$reachableState] = $reachableCost;
+                        }
+                    }
+                }
+            }
+
+            $states = $statesStar;
+            $lastMappedChar = $mappedChar;
+            $lastSubstitutions = $substitutionStates;
+        });
     }
 
     /**
