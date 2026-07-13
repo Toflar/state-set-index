@@ -156,7 +156,8 @@ class StateSetIndexTest extends TestCase
         $stateSetIndex = new StateSetIndex(new Config(5, 4), new Utf8Alphabet(), new InMemoryStateSet(), new InMemoryDataStore());
         $stateSetIndex->index(['Mueller']);
 
-        $onlyMuellerStates = $stateSetIndex->getStateSet()->all();
+        $onlyMuellerStates = $stateSetIndex->getStateSet()
+            ->all();
 
         $stateSetIndex->removeFromIndex(['Mueller']);
 
@@ -178,7 +179,8 @@ class StateSetIndexTest extends TestCase
         $stateSetIndex->index($strings);
         $stateSetIndex->index(['Mueller']);
 
-        $states = $stateSetIndex->getStateSet()->all();
+        $states = $stateSetIndex->getStateSet()
+            ->all();
         sort($states);
 
         $this->assertSame(range(1, (((4 * 4 + 4) * 4 + 4) * 4 + 4) * 4 + 4), $states, 'No state should be missing');
@@ -193,7 +195,8 @@ class StateSetIndexTest extends TestCase
         $stateSetIndex = new StateSetIndex(new Config(14, 4), new Utf8Alphabet(), new InMemoryStateSet(), new InMemoryDataStore());
         $stateSetIndex->index(['Mueller']);
 
-        $onlyMuellerStates = $stateSetIndex->getStateSet()->all();
+        $onlyMuellerStates = $stateSetIndex->getStateSet()
+            ->all();
 
         $stateSetIndex->removeFromIndex(['Mueller']);
 
@@ -342,7 +345,8 @@ class StateSetIndexTest extends TestCase
      */
     private function findSortedMatchingStatesFromSnapshot(StateSetIndex $stateSetIndex, string $string, MatchingStatesSnapshot $snapshot): array
     {
-        $states = $stateSetIndex->continueMatchingStatesSnapshot($string, $snapshot)->matchingStates();
+        $states = $stateSetIndex->continueMatchingStatesSnapshot($string, $snapshot)
+            ->matchingStates();
         sort($states);
         return $states;
     }

@@ -8,13 +8,12 @@ use PhpCsFixer\Fixer\Operator\NotOperatorWithSuccessorSpaceFixer;
 use Symplify\EasyCodingStandard\Config\ECSConfig;
 use Symplify\EasyCodingStandard\ValueObject\Set\SetList;
 
-return function (ECSConfig $ecsConfig): void {
-    $ecsConfig->paths([
+return ECSConfig::configure()
+    ->withPaths([
         __DIR__ . '/src',
         __DIR__ . '/tests',
-    ]);
-
-    $ecsConfig->sets([
+    ])
+    ->withSets([
         SetList::SPACES,
         SetList::ARRAY,
         SetList::DOCBLOCK,
@@ -22,10 +21,8 @@ return function (ECSConfig $ecsConfig): void {
         SetList::COMMENTS,
         SetList::PSR_12,
         SetList::CLEAN_CODE,
-    ]);
-
+    ])
     // Always move private elements to the bottom
-    $ecsConfig->ruleWithConfiguration(OrderedClassElementsFixer::class, ['sort_algorithm' => 'alpha']);
-    $ecsConfig->rule(NativeFunctionInvocationFixer::class);
-    $ecsConfig->skip([NotOperatorWithSuccessorSpaceFixer::class]);
-};
+    ->withConfiguredRule(OrderedClassElementsFixer::class, ['sort_algorithm' => 'alpha'])
+    ->withRules([NativeFunctionInvocationFixer::class])
+    ->withSkip([NotOperatorWithSuccessorSpaceFixer::class]);
